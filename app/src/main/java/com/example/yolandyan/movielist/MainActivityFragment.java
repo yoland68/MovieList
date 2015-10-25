@@ -1,7 +1,10 @@
 package com.example.yolandyan.movielist;
 
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,17 +12,46 @@ import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.Toast;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 /**
  * A placeholder fragment containing a simple view.
  */
 public class MainActivityFragment extends Fragment {
+    private final String LOGTAG = MainActivity.class.getSimpleName();
+
+    private final String BASE_URL = "http://api.themoviedb.org/3/";
+    private final String IMAGE_BASE_URL = "http://image.tmdb.org/t/p/";
+    private final String DISCOVER_PATH = "discover/movie";
+    private final String SORT_PARAM = "sort_by";
+    private final String SORT = "popularity.desc";
+    private final String API_KEY_PARAM = "api_key";
+    private final String API_KEY = "964a973c564ea29df85b4cb40c6bec10";
+
+    private final String IMAGE_SIZE = "w185";
+
+    private ImageAdapter mImageAdapter;
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        mImageAdapter = new ImageAdapter(getActivity());
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
         GridView gridView = (GridView) rootView.findViewById(R.id.poster_gridview);
-        gridView.setAdapter(new ImageAdapter(getActivity()));
+        gridView.setAdapter(mImageAdapter);
 
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -33,5 +65,103 @@ public class MainActivityFragment extends Fragment {
         return rootView;
     }
 
-//    private class fetchMovieData extends AsyncTask<String, >
+    @Override
+    public void onStart() {
+        super.onStart();
+        updateMovieData();
+    }
+
+    public void updateMovieData() {
+        FetchMovieData movieData = new FetchMovieData();
+        movieData.execute(BASE_URL);
+    }
+
+    private class FetchMovieData extends AsyncTask<String, Void, String[]> {
+        private final String SUB_LOGTAG = FetchMovieData.class.getSimpleName();
+
+        public String[] processMovieDataString(String dataString) throws JSONException{
+            String RST = "results";
+            String PSTR = "poster_path";
+
+            JSONObject movieDataJSON = new JSONObject(dataString);
+            JSONArray resultArray = movieDataJSON.getJSONArray(RST);
+
+            String[] movieUrls = new String[resultArray.length()];
+
+            for (int i = 0; i < resultArray.length(); i++) {
+                JSONObject oneMovie = resultArray.getJSONObject(i);
+                String moviePath = oneMovie.getString(PSTR);
+                String movieUrl = Uri.parse(IMAGE_BASE_URL)
+                            .buildUpon()
+                            .appendPath(IMAGE_SIZE)
+                            .appendEncodedPath(moviePath)
+                            .build().toString();
+                movieUrls[i] = movieUrl;
+            }
+
+            return movieUrls;
+
+        }
+
+        protected String[] doInBackground(String... urls) {
+            HttpURLConnection conn = null;
+            BufferedReader bufferedReader = null;
+            String movieDataString = null;
+            String baseUrl = urls[0];
+
+            try {
+                Uri uri = Uri.parse(baseUrl)
+                        .buildUpon()
+                        .appendEncodedPath(DISCOVER_PATH)
+                        .appendQueryParameter(SORT_PARAM, SORT)
+                        .appendQueryParameter(API_KEY_PARAM, API_KEY)
+                        .build();
+                URL url = new URL(uri.toString());
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.connect();
+
+                StringBuffer buffer = new StringBuffer();
+
+                bufferedReader = new BufferedReader(new InputStreamReader(
+                        conn.getInputStream()));
+
+                String inputLine;
+                while ((inputLine = bufferedReader.readLine()) != null) {
+                    buffer.append(inputLine + "\n");
+                }
+
+                if (buffer.length() == 0) {
+                    return null;
+                }
+
+                movieDataString = buffer.toString();
+            } catch (IOException e) {
+                Log.e(SUB_LOGTAG, e.toString());
+            } finally {
+                if (conn != null) {
+                    conn.disconnect();
+                }
+                if (bufferedReader != null) {
+                    try {
+                        bufferedReader.close();
+                    } catch (IOException e) {
+                        Log.e(SUB_LOGTAG, "Error closing stream", e);
+                    }
+                }
+            }
+
+            try {
+                return processMovieDataString(movieDataString);
+            } catch (JSONException e) {
+                Log.e(SUB_LOGTAG, e.getMessage(), e);
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        protected void onPostExecute(String[] posterLinks) {
+            mImageAdapter.setImageLinks(posterLinks);
+        }
+    }
 }

@@ -35,6 +35,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     public void testGridViewAdapter() {
         ImageAdapter adapter = (ImageAdapter) mGridView.getAdapter();
         assertNotNull(adapter);
-        assertEquals(adapter.getCount(), adapter.mImageLink.length);
+        assertEquals(adapter.getCount(), adapter.getImageLinks().length);
     }
 }
