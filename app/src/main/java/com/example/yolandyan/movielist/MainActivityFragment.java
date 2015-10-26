@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.LinkedHashMap;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -36,9 +37,10 @@ public class MainActivityFragment extends Fragment {
     private final String API_KEY_PARAM = "api_key";
     private final String API_KEY = "964a973c564ea29df85b4cb40c6bec10";
 
-    private final String IMAGE_SIZE = "w185";
+    private final String IMAGE_SIZE = "w500";
 
     private ImageAdapter mImageAdapter;
+    private GridView mGridView;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -50,10 +52,10 @@ public class MainActivityFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-        GridView gridView = (GridView) rootView.findViewById(R.id.poster_gridview);
-        gridView.setAdapter(mImageAdapter);
+        mGridView = (GridView) rootView.findViewById(R.id.poster_gridview);
+        mGridView.setAdapter(mImageAdapter);
 
-        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        mGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 // SOF #STUB
@@ -69,6 +71,7 @@ public class MainActivityFragment extends Fragment {
     public void onStart() {
         super.onStart();
         updateMovieData();
+        mGridView.setAdapter(mImageAdapter);
     }
 
     public void updateMovieData() {
@@ -76,34 +79,37 @@ public class MainActivityFragment extends Fragment {
         movieData.execute(BASE_URL);
     }
 
-    private class FetchMovieData extends AsyncTask<String, Void, String[]> {
+    public class FetchMovieData extends AsyncTask<String, Void, LinkedHashMap<Long, String>> {
         private final String SUB_LOGTAG = FetchMovieData.class.getSimpleName();
 
-        public String[] processMovieDataString(String dataString) throws JSONException{
+        public LinkedHashMap<Long, String> processMovieDataString(String dataString)
+                throws JSONException{
             String RST = "results";
             String PSTR = "poster_path";
+            String ID = "id";
 
             JSONObject movieDataJSON = new JSONObject(dataString);
             JSONArray resultArray = movieDataJSON.getJSONArray(RST);
 
-            String[] movieUrls = new String[resultArray.length()];
+            LinkedHashMap<Long, String> movieHashMap = new LinkedHashMap<>();
 
             for (int i = 0; i < resultArray.length(); i++) {
                 JSONObject oneMovie = resultArray.getJSONObject(i);
+                Long movieId = new Long(oneMovie.getInt(ID));
                 String moviePath = oneMovie.getString(PSTR);
-                String movieUrl = Uri.parse(IMAGE_BASE_URL)
+                String moviePosterUrl = Uri.parse(IMAGE_BASE_URL)
                             .buildUpon()
                             .appendPath(IMAGE_SIZE)
                             .appendEncodedPath(moviePath)
                             .build().toString();
-                movieUrls[i] = movieUrl;
+                movieHashMap.put(movieId, moviePosterUrl);
             }
 
-            return movieUrls;
+            return movieHashMap;
 
         }
 
-        protected String[] doInBackground(String... urls) {
+        protected LinkedHashMap<Long, String> doInBackground(String... urls) {
             HttpURLConnection conn = null;
             BufferedReader bufferedReader = null;
             String movieDataString = null;
@@ -160,8 +166,8 @@ public class MainActivityFragment extends Fragment {
             return null;
         }
 
-        protected void onPostExecute(String[] posterLinks) {
-            mImageAdapter.setImageLinks(posterLinks);
+        protected void onPostExecute(LinkedHashMap<Long, String> movieData) {
+            mImageAdapter.setMovieData(movieData);
         }
     }
 }

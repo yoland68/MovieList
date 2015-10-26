@@ -9,37 +9,31 @@ import android.widget.ImageView;
 
 import com.squareup.picasso.Picasso;
 
+import java.util.LinkedHashMap;
+
 /**
  * Created by yolandyan on 10/20/15.
  */
 public class ImageAdapter extends BaseAdapter {
     private Context mContext;
-    private String[] mImageLinks = {
-            "http://unrealitymag.bcmediagroup.netdna-cdn.com/wp-content/uploads/2011/09/up_poster_by_adamrabalais-d4120tf-465x688.jpg",
-            "http://unrealitymag.bcmediagroup.netdna-cdn.com/wp-content/uploads/2011/09/the_prestige_poster_by_adamrabalais-d3n1yk2-465x688.jpg",
-            "http://unrealitymag.bcmediagroup.netdna-cdn.com/wp-content/uploads/2011/09/harry_potter_poa_poster_by_adamrabalais-d41kf65-465x688.jpg",
-            "http://unrealitymag.bcmediagroup.netdna-cdn.com/wp-content/uploads/2011/09/2001__a_space_odyssey_poster_2_by_adamrabalais-d45pssr-465x688.jpg",
-            "http://unrealitymag.bcmediagroup.netdna-cdn.com/wp-content/uploads/2011/09/2001__a_space_odyssey_poster_2_by_adamrabalais-d45pssr-465x688.jpg",
-            "http://unrealitymag.bcmediagroup.netdna-cdn.com/wp-content/uploads/2011/09/american_psycho_poster_by_adamrabalais-d41qyfc-465x688.jpg",
-            "http://unrealitymag.bcmediagroup.netdna-cdn.com/wp-content/uploads/2011/09/american_psycho_poster_by_adamrabalais-d41qyfc-465x688.jpg",
-    };
+    private LinkedHashMap<Long, String> mMovieData;
+    private Long[] mMovieIds = {};
 
     public ImageAdapter(Context c) {
         mContext = c;
-        mImageLinks = new String[]{};
+        mMovieData = new LinkedHashMap<>();
     }
 
     public int getCount() {
-        return 0;
-//        return mImageLinks.length;
+        return mMovieData.size();
     }
 
     public String getItem(int position) {
-        return mImageLinks[position];
+        return mMovieData.get(getItem(position));
     }
 
     public long getItemId(int position) {
-        return 0;
+        return mMovieIds[position];
     }
 
     public View getView(int position, View convertView, ViewGroup parent) {
@@ -54,13 +48,17 @@ public class ImageAdapter extends BaseAdapter {
         return imageView;
     }
 
-    public void setImageLinks(String[] imageLinks) {
-        mImageLinks = imageLinks;
+    public void setMovieData(LinkedHashMap<Long, String> movieData) {
+        mMovieData = movieData;
+        mMovieIds = movieData.keySet().toArray(new Long[movieData.size()]);
+        notifyDataSetChanged();
     }
 
-    public String[] getImageLinks() {
-        return mImageLinks;
+    public LinkedHashMap<Long, String> getMovieData() {
+        return mMovieData;
     }
 
-
+    public Long[] getMovieIds() {
+        return mMovieIds;
+    }
 }
