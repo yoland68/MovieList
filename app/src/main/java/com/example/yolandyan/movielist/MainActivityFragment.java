@@ -1,16 +1,17 @@
 package com.example.yolandyan.movielist;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.GridView;
-import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -29,16 +30,6 @@ import java.util.LinkedHashMap;
 public class MainActivityFragment extends Fragment {
     private final String LOGTAG = MainActivity.class.getSimpleName();
 
-    private final String BASE_URL = "http://api.themoviedb.org/3/";
-    private final String IMAGE_BASE_URL = "http://image.tmdb.org/t/p/";
-    private final String DISCOVER_PATH = "discover/movie";
-    private final String SORT_PARAM = "sort_by";
-    private final String SORT = "popularity.desc";
-    private final String API_KEY_PARAM = "api_key";
-    private final String API_KEY = "964a973c564ea29df85b4cb40c6bec10";
-
-    private final String IMAGE_SIZE = "w500";
-
     private ImageAdapter mImageAdapter;
     private GridView mGridView;
 
@@ -46,6 +37,7 @@ public class MainActivityFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mImageAdapter = new ImageAdapter(getActivity());
+        setHasOptionsMenu(true);
     }
 
     @Override
@@ -58,25 +50,52 @@ public class MainActivityFragment extends Fragment {
         mGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                // SOF #STUB
-                String info = String.format("postion is %d, id is %d", position, id);
-                Toast.makeText(getActivity(), info, Toast.LENGTH_SHORT).show();
-                // EOF
+                Intent intent = new Intent(getActivity(), DetailActivity.class);
+                intent.putExtra(Intent.EXTRA_TEXT, id);
+                startActivity(intent);
             }
         });
         return rootView;
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        if (id == R.id.sort_by_rating) {
+            MainActivity activity = (MainActivity)getActivity();
+            activity.setSortByOption(Consts.SORT_BY_RATING);
+        }
+
+        if (id == R.id.sort_by_popularity) {
+            MainActivity activity = (MainActivity)getActivity();
+            activity.setSortByOption(Consts.SORT_BY_POPULARITY);
+        }
+        if (item.getItemId() == R.id.action_update_main) {
+            Log.d(LOGTAG, "update main activity");
+        }
+        updateMovieData();
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
     public void onStart() {
         super.onStart();
         updateMovieData();
-        mGridView.setAdapter(mImageAdapter);
     }
 
     public void updateMovieData() {
         FetchMovieData movieData = new FetchMovieData();
-        movieData.execute(BASE_URL);
+        MainActivity mainActivity = (MainActivity) getActivity();
+        if (mainActivity.getSortByOption().equals(Consts.SORT_BY_POPULARITY)) {
+            movieData.execute(Consts.POPULAR_PATH);
+        } else if (mainActivity.getSortByOption().equals(Consts.SORT_BY_RATING)) {
+            movieData.execute(Consts.RATING_PATH);
+        }
     }
 
     public class FetchMovieData extends AsyncTask<String, Void, LinkedHashMap<Long, String>> {
@@ -95,12 +114,13 @@ public class MainActivityFragment extends Fragment {
 
             for (int i = 0; i < resultArray.length(); i++) {
                 JSONObject oneMovie = resultArray.getJSONObject(i);
-                Long movieId = new Long(oneMovie.getInt(ID));
+                Long movieId = Long.valueOf(oneMovie.getInt(ID));
                 String moviePath = oneMovie.getString(PSTR);
-                String moviePosterUrl = Uri.parse(IMAGE_BASE_URL)
+                String moviePosterUrl = Uri.parse(Consts.IMAGE_BASE_URL)
                             .buildUpon()
-                            .appendPath(IMAGE_SIZE)
+                            .appendPath(Consts.IMAGE_SIZE)
                             .appendEncodedPath(moviePath)
+                            .appendQueryParameter(Consts.API_KEY_PARAM, Consts.API_KEY)
                             .build().toString();
                 movieHashMap.put(movieId, moviePosterUrl);
             }
@@ -109,18 +129,23 @@ public class MainActivityFragment extends Fragment {
 
         }
 
-        protected LinkedHashMap<Long, String> doInBackground(String... urls) {
+        protected LinkedHashMap<Long, String> doInBackground(String...params) {
             HttpURLConnection conn = null;
             BufferedReader bufferedReader = null;
             String movieDataString = null;
-            String baseUrl = urls[0];
+            if (params.length != 1) {
+                Log.e(SUB_LOGTAG, String.format("Expect 1 argument for the asynctask to fetch " +
+                        "movie data, received %d arguments",  params.length));
+                return null;
+            }
+            String sortPath = params[0];
 
             try {
-                Uri uri = Uri.parse(baseUrl)
+                Uri uri = Uri.parse(Consts.BASE_URL)
                         .buildUpon()
-                        .appendEncodedPath(DISCOVER_PATH)
-                        .appendQueryParameter(SORT_PARAM, SORT)
-                        .appendQueryParameter(API_KEY_PARAM, API_KEY)
+                        .appendEncodedPath(Consts.MOVIE_PATH)
+                        .appendEncodedPath(sortPath)
+                        .appendQueryParameter(Consts.API_KEY_PARAM, Consts.API_KEY)
                         .build();
                 URL url = new URL(uri.toString());
                 conn = (HttpURLConnection) url.openConnection();
@@ -167,7 +192,12 @@ public class MainActivityFragment extends Fragment {
         }
 
         protected void onPostExecute(LinkedHashMap<Long, String> movieData) {
-            mImageAdapter.setMovieData(movieData);
+            Long[] movieIds = movieData.keySet().toArray(new Long[movieData.size()]);
+            String[] posterPaths = new String[movieData.size()];
+            for (int i = 0; i < posterPaths.length; i++) {
+                posterPaths[i] = movieData.get(movieIds[i]);
+            }
+            mImageAdapter.setMovieData(movieIds, posterPaths);
         }
     }
 }
