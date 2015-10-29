@@ -15,21 +15,43 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_margin="6dp"
         android:orientation="vertical">
 
         <TextView
             android:id="@+id/detail_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentTop="true" />
+            android:gravity="center"
+            android:textSize="@dimen/abc_text_size_title_material"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/lineA"
+            android:layout_width="fill_parent"
+            android:layout_height="2dp"
+            android:layout_margin="10dp"
+            android:orientation="horizontal"
+            android:background="#AAA" />
+
+        <TextView
+            android:id="@+id/detail_release_date"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/detail_vote_average"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/detail_description"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentTop="true" />
+            android:layout_height="match_parent" />
 
     </LinearLayout>
 

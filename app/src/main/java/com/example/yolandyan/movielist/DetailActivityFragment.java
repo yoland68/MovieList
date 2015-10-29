@@ -1,5 +1,6 @@
 package com.example.yolandyan.movielist;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -33,6 +34,8 @@ public class DetailActivityFragment extends Fragment{
     private String TITLE_KEY = "title";
     private String POSTER_URL_KEY = "poster_path";
     private String DESCRIPTION_KEY = "overview";
+    private String VOTE_AVG_KEY = "vote_average";
+    private String REL_DATE_KEY = "release_date";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -81,6 +84,8 @@ public class DetailActivityFragment extends Fragment{
             JSONObject movieDataJSON = new JSONObject(dataString);
             result.put(TITLE_KEY, movieDataJSON.getString(TITLE_KEY));
             result.put(DESCRIPTION_KEY, movieDataJSON.getString(DESCRIPTION_KEY));
+            result.put(REL_DATE_KEY, movieDataJSON.getString(REL_DATE_KEY));
+            result.put(VOTE_AVG_KEY, movieDataJSON.getString(VOTE_AVG_KEY));
             String posterPath = movieDataJSON.getString(POSTER_URL_KEY);
             String posterUrl = Uri.parse(Consts.IMAGE_BASE_URL)
                             .buildUpon()
@@ -109,14 +114,14 @@ public class DetailActivityFragment extends Fragment{
                 conn.setRequestMethod("GET");
                 conn.connect();
 
-                StringBuffer buffer = new StringBuffer();
+                StringBuilder buffer = new StringBuilder();
 
                 bufferedReader = new BufferedReader(new InputStreamReader(
                         conn.getInputStream()));
 
                 String inputLine;
                 while ((inputLine = bufferedReader.readLine()) != null) {
-                    buffer.append(inputLine + "\n");
+                    buffer.append(inputLine).append("\n");
                 }
 
                 if (buffer.length() == 0) {
@@ -151,15 +156,26 @@ public class DetailActivityFragment extends Fragment{
         @Override
         protected void onPostExecute(HashMap<String, String> result) {
             // Find views
-            ImageView imageView = (ImageView) getActivity().findViewById(R.id.detail_poster);
-            TextView titleTextView = (TextView) getActivity().findViewById(R.id.detail_title);
+            Activity activity = getActivity();
+            ImageView imageView = (ImageView) activity.findViewById(R.id.detail_poster);
+            TextView titleTextView = (TextView) activity.findViewById(R.id.detail_title);
+            TextView relTextView = (TextView) activity.findViewById(R.id.detail_release_date);
+            TextView voteTextView = (TextView) activity.findViewById(R.id.detail_vote_average);
             TextView descriptionTextView =
-                    (TextView) getActivity().findViewById(R.id.detail_description);
+                    (TextView) activity.findViewById(R.id.detail_description);
 
             // Change views
-            Picasso.with(getActivity()).load(result.get(POSTER_URL_KEY)).into(imageView);
+            String releaseDateString = new StringBuilder("Release Date: ")
+                    .append(result.get(REL_DATE_KEY))
+                    .toString();
+            String voteAverageString = new StringBuilder("Vote Average: ")
+                    .append(result.get(VOTE_AVG_KEY))
+                    .toString();
             titleTextView.setText(result.get(TITLE_KEY));
+            relTextView.setText(releaseDateString);
+            voteTextView.setText(voteAverageString);
             descriptionTextView.setText(result.get(DESCRIPTION_KEY));
+            Picasso.with(getActivity()).load(result.get(POSTER_URL_KEY)).into(imageView);
         }
     }
 }
