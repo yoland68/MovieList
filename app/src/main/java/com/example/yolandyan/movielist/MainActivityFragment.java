@@ -1,9 +1,11 @@
 package com.example.yolandyan.movielist;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -90,10 +92,11 @@ public class MainActivityFragment extends Fragment {
 
     public void updateMovieData() {
         FetchMovieData movieData = new FetchMovieData();
-        MainActivity mainActivity = (MainActivity) getActivity();
-        if (mainActivity.getSortByOption().equals(Consts.SORT_BY_POPULARITY)) {
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String sortByOption = sharedPref.getString(Consts.SORT_KEY, Consts.SORT_BY_POPULARITY);
+        if (sortByOption.equals(Consts.SORT_BY_POPULARITY)) {
             movieData.execute(Consts.POPULAR_PATH);
-        } else if (mainActivity.getSortByOption().equals(Consts.SORT_BY_RATING)) {
+        } else if (sortByOption.equals(Consts.SORT_BY_RATING)) {
             movieData.execute(Consts.RATING_PATH);
         }
     }
