@@ -1,7 +1,9 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools" tools:context=".DetailActivity">
+    tools:context=".DetailActivity">
     <item android:id="@+id/action_update_detail" android:title="Update"
-        android:showAsAction="never" android:orderInCategory="100"></item>
+        app:showAsAction="never" android:orderInCategory="100"></item>
+
 
 </menu>
