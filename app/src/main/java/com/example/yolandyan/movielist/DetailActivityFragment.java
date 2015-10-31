@@ -49,9 +49,9 @@ public class DetailActivityFragment extends Fragment{
         View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
         Intent intent = getActivity().getIntent();
         if (intent != null && intent.hasExtra(Intent.EXTRA_TEXT)) {
-            mMovieId = intent.getLongExtra(Intent.EXTRA_TEXT, mMovieId);
+            mMovieId = intent.getLongExtra(Intent.EXTRA_TEXT, -1);
             // #Question: Should I do this?
-            assert (mMovieId != null);
+            assert (mMovieId != -1);
         }
         return rootView;
     }
