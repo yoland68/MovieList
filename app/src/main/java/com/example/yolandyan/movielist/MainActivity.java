@@ -38,6 +38,8 @@ public class MainActivity extends AppCompatActivity {
         MenuItem sortByRateItem = menu.findItem(R.id.sort_by_rating);
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         String sortByOption = sharedPref.getString(Consts.SORT_KEY, Consts.SORT_BY_POPULARITY);
+
+        // Alternating the two sort options item's visibility in menu
         if (sortByOption.equals(Consts.SORT_BY_RATING)) {
             sortByPopItem.setVisible(true);
             sortByRateItem.setVisible(false);
@@ -52,10 +54,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void setSortByOption(String option) {
+        // Set preferences using SharedPreferences.Editor
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor editor = sharedPref.edit();
         editor.putString(Consts.SORT_KEY, option);
-        editor.commit();
+        editor.apply();
+        // Make sure the preference is committed
         String pref = sharedPref.getString(Consts.SORT_KEY, "");
         if (pref.isEmpty()) {
             Log.e(LOGTAG, "Preference is not applied");

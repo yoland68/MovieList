@@ -94,6 +94,8 @@ public class MainActivityFragment extends Fragment {
         FetchMovieData movieData = new FetchMovieData();
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getActivity());
         String sortByOption = sharedPref.getString(Consts.SORT_KEY, Consts.SORT_BY_POPULARITY);
+
+        // Use shared sort preference to pass api url path accordingly
         if (sortByOption.equals(Consts.SORT_BY_POPULARITY)) {
             movieData.execute(Consts.POPULAR_PATH);
         } else if (sortByOption.equals(Consts.SORT_BY_RATING)) {
@@ -132,6 +134,8 @@ public class MainActivityFragment extends Fragment {
 
         }
 
+        // Use LinkedHashMap to maintain the sorting order of the fetched data
+        // More readable than using 2d arrays
         protected LinkedHashMap<Long, String> doInBackground(String...params) {
             HttpURLConnection conn = null;
             BufferedReader bufferedReader = null;
@@ -195,6 +199,7 @@ public class MainActivityFragment extends Fragment {
         }
 
         protected void onPostExecute(LinkedHashMap<Long, String> movieData) {
+            // Extract movie ids and its poster path into 2 arrays as sorted
             Long[] movieIds = movieData.keySet().toArray(new Long[movieData.size()]);
             String[] posterPaths = new String[movieData.size()];
             for (int i = 0; i < posterPaths.length; i++) {

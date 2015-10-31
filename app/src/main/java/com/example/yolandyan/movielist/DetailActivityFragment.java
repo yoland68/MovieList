@@ -49,7 +49,9 @@ public class DetailActivityFragment extends Fragment{
         View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
         Intent intent = getActivity().getIntent();
         if (intent != null && intent.hasExtra(Intent.EXTRA_TEXT)) {
-            mMovieId = intent.getLongExtra(Intent.EXTRA_TEXT, 77467);
+            mMovieId = intent.getLongExtra(Intent.EXTRA_TEXT, mMovieId);
+            // #Question: Should I do this?
+            assert (mMovieId != null);
         }
         return rootView;
     }
@@ -98,6 +100,7 @@ public class DetailActivityFragment extends Fragment{
         }
 
         protected HashMap<String, String> doInBackground(Void...params) {
+            // Copy pasta
             HttpURLConnection conn = null;
             BufferedReader bufferedReader = null;
             String movieDataString = null;
