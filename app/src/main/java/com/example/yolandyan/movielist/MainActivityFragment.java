@@ -35,7 +35,7 @@ public class MainActivityFragment extends Fragment {
     private final String SORT_PARAM = "sort_by";
     private final String SORT = "popularity.desc";
     private final String API_KEY_PARAM = "api_key";
-    private final String API_KEY = "964a973c564ea29df85b4cb40c6bec10";
+    private final String API_KEY = "[PUT YOUR OWN API KEY]";
 
     private final String IMAGE_SIZE = "w500";
 

@@ -29,6 +29,7 @@ public class ImageAdapter extends BaseAdapter {
     }
 
     public String getItem(int position) {
+        // #Question: getting a stack overflow error here?
         return mMovieData.get(getItem(position));
     }
 
