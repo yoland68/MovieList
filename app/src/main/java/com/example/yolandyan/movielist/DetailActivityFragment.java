@@ -1,7 +1,10 @@
 package com.example.yolandyan.movielist;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -13,6 +16,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
@@ -72,8 +76,15 @@ public class DetailActivityFragment extends Fragment{
     }
 
     public void updateMovieData() {
-        FetchDetailMovieTask task = new FetchDetailMovieTask();
-        task.execute();
+        ConnectivityManager cm =
+                (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        if (activeNetwork != null && activeNetwork.isConnected()) {
+            FetchDetailMovieTask task = new FetchDetailMovieTask();
+            task.execute();
+        } else {
+            Toast.makeText(getActivity(), "No Internet", Toast.LENGTH_SHORT).show();
+        }
     }
 
     public class FetchDetailMovieTask extends AsyncTask<Void, Void, HashMap<String, String>> {

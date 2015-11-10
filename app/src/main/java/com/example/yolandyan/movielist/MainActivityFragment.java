@@ -1,7 +1,10 @@
 package com.example.yolandyan.movielist;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -14,6 +17,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.GridView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -69,12 +73,12 @@ public class MainActivityFragment extends Fragment {
         int id = item.getItemId();
 
         if (id == R.id.sort_by_rating) {
-            MainActivity activity = (MainActivity)getActivity();
+            MainActivity activity = (MainActivity) getActivity();
             activity.setSortByOption(Consts.SORT_BY_RATING);
         }
 
         if (id == R.id.sort_by_popularity) {
-            MainActivity activity = (MainActivity)getActivity();
+            MainActivity activity = (MainActivity) getActivity();
             activity.setSortByOption(Consts.SORT_BY_POPULARITY);
         }
         if (item.getItemId() == R.id.action_update_main) {
@@ -91,23 +95,32 @@ public class MainActivityFragment extends Fragment {
     }
 
     public void updateMovieData() {
-        FetchMovieData movieData = new FetchMovieData();
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String sortByOption = sharedPref.getString(Consts.SORT_KEY, Consts.SORT_BY_POPULARITY);
+        ConnectivityManager cm =
+                (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        if (activeNetwork != null && activeNetwork.isConnected()) {
+            FetchMovieData movieData = new FetchMovieData();
+            SharedPreferences sharedPref = PreferenceManager
+                    .getDefaultSharedPreferences(getActivity());
+            String sortByOption = sharedPref.getString(Consts.SORT_KEY, Consts.SORT_BY_POPULARITY);
+            if (sortByOption.equals(Consts.SORT_BY_POPULARITY)) {
+                movieData.execute(Consts.POPULAR_PATH);
+            } else if (sortByOption.equals(Consts.SORT_BY_RATING)) {
+                movieData.execute(Consts.RATING_PATH);
+            }
+        } else {
+            Toast.makeText(getActivity(), "No Internet", Toast.LENGTH_SHORT).show();
+        }
 
         // Use shared sort preference to pass api url path accordingly
-        if (sortByOption.equals(Consts.SORT_BY_POPULARITY)) {
-            movieData.execute(Consts.POPULAR_PATH);
-        } else if (sortByOption.equals(Consts.SORT_BY_RATING)) {
-            movieData.execute(Consts.RATING_PATH);
-        }
+
     }
 
     public class FetchMovieData extends AsyncTask<String, Void, LinkedHashMap<Long, String>> {
         private final String SUB_LOGTAG = FetchMovieData.class.getSimpleName();
 
         public LinkedHashMap<Long, String> processMovieDataString(String dataString)
-                throws JSONException{
+                throws JSONException {
             String RST = "results";
             String PSTR = "poster_path";
             String ID = "id";
@@ -122,11 +135,11 @@ public class MainActivityFragment extends Fragment {
                 Long movieId = Long.valueOf(oneMovie.getInt(ID));
                 String moviePath = oneMovie.getString(PSTR);
                 String moviePosterUrl = Uri.parse(Consts.IMAGE_BASE_URL)
-                            .buildUpon()
-                            .appendPath(Consts.IMAGE_SIZE)
-                            .appendEncodedPath(moviePath)
-                            .appendQueryParameter(Consts.API_KEY_PARAM, Consts.API_KEY)
-                            .build().toString();
+                        .buildUpon()
+                        .appendPath(Consts.IMAGE_SIZE)
+                        .appendEncodedPath(moviePath)
+                        .appendQueryParameter(Consts.API_KEY_PARAM, Consts.API_KEY)
+                        .build().toString();
                 movieHashMap.put(movieId, moviePosterUrl);
             }
 
@@ -136,13 +149,13 @@ public class MainActivityFragment extends Fragment {
 
         // Use LinkedHashMap to maintain the sorting order of the fetched data
         // More readable than using 2d arrays
-        protected LinkedHashMap<Long, String> doInBackground(String...params) {
+        protected LinkedHashMap<Long, String> doInBackground(String... params) {
             HttpURLConnection conn = null;
             BufferedReader bufferedReader = null;
             String movieDataString = null;
             if (params.length != 1) {
                 Log.e(SUB_LOGTAG, String.format("Expect 1 argument for the asynctask to fetch " +
-                        "movie data, received %d arguments",  params.length));
+                        "movie data, received %d arguments", params.length));
                 return null;
             }
             String sortPath = params[0];
