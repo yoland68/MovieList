@@ -114,6 +114,48 @@ public class ForecastFragment extends Fragment {
         return rootView;
     }
 
+//    private void updateWeatherWithDB() {
+//        ContentResolver resolver = getActivity().getContentResolver();
+//        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+//        String location = prefs.getString(getString(R.string.pref_location_key),
+//                getString(R.string.pref_location_default));
+//        Cursor locationCursor = resolver.query(WeatherContract.LocationEntry.URI, null,
+//                String.format("%s=%s", WeatherContract.LocationEntry.COLUMN_CITY_NAME, location),
+//                null, null);
+//        Cursor weatherCursor = null;
+//        try {
+//            assert locationCursor.getCount() == 1;
+//            int idColumnIndex = locationCursor.getColumnIndex(WeatherContract.LocationEntry._ID);
+//            int locationId = locationCursor.getInt(idColumnIndex);
+//            weatherCursor = resolver.query(WeatherContract.WeatherEntry.URI,
+//                    null,
+//                    String.format("%s=%s", WeatherContract.WeatherEntry.COLUMN_LOC_KEY,
+//                            locationId),
+//                    null,
+//                    null);
+//            assert weatherCursor.getCount() == 1;
+//            SimpleCursorAdapter adapter = new SimpleCursorAdapter(getActivity(),
+//                    R.layout.list_item_forecast, locationCursor,
+//                    new String[]{WeatherContract.WeatherEntry.COLUMN_DATE,
+//                                 WeatherContract.WeatherEntry.COLUMN_MAX_TEMP,
+//                                 WeatherContract.WeatherEntry.COLUMN_MIN_TEMP},
+//                    new int[]{R.id.main_date_text,
+//                              R.id.main_max_text,
+//                              R.id.main_min_text},
+//                    0);
+//        } catch (Exception e) {
+//            Log.e("Error in updateWeatherWithDB", e.toString());
+//        } finally {
+//            if (locationCursor != null) {
+//                locationCursor.close();
+//            }
+//            if (weatherCursor != null) {
+//                weatherCursor.close();
+//            }
+//        }
+//
+//    }
+
     private void updateWeather() {
         FetchWeatherTask weatherTask = new FetchWeatherTask();
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
@@ -276,12 +318,14 @@ public class ForecastFragment extends Fragment {
                 final String FORMAT_PARAM = "mode";
                 final String UNITS_PARAM = "units";
                 final String DAYS_PARAM = "cnt";
+                final String APPID_PARAM = "APPID";
 
                 Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
                         .appendQueryParameter(QUERY_PARAM, params[0])
                         .appendQueryParameter(FORMAT_PARAM, format)
                         .appendQueryParameter(UNITS_PARAM, units)
                         .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
+                        .appendQueryParameter(APPID_PARAM, BuildConfig.OPEN_WEATHER_MAP_API_KEY)
                         .build();
 
                 URL url = new URL(builtUri.toString());
