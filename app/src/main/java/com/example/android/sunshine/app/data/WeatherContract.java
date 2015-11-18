@@ -71,6 +71,10 @@ public class WeatherContract {
             return ContentUris.withAppendedId(CONTENT_URI, id);
         }
 
+        public static Long getIdFromUri(Uri uri) {
+            return Long.parseLong(uri.getPathSegments().get(1));
+        }
+
         public static final String TABLE_NAME = "location";
 
         // The location setting string is what will be sent to openweathermap

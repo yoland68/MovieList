@@ -15,6 +15,7 @@
  */
 package com.example.android.sunshine.app;
 
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -24,7 +25,9 @@ import android.preference.PreferenceManager;
 import android.text.format.Time;
 import android.util.Log;
 import android.widget.ArrayAdapter;
+import android.database.Cursor;
 
+import com.example.android.sunshine.app.data.WeatherContract;
 import com.example.android.sunshine.app.data.WeatherContract.WeatherEntry;
 
 import org.json.JSONArray;
@@ -109,7 +112,23 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
         // Students: First, check if the location with this city name exists in the db
         // If it exists, return the current ID
         // Otherwise, insert it using the content resolver and the base URI
+        ContentResolver resolver = mContext.getContentResolver();
+        Cursor cursor = resolver.query(WeatherContract.LocationEntry.CONTENT_URI, null,
+                String.format("%s=%s", WeatherContract.LocationEntry.COLUMN_LOCATION_SETTING,
+                        locationSetting),
+                null, null);
+        if (cursor == null){
+            ContentValues cv = new ContentValues();
+            cv.put(WeatherContract.LocationEntry.COLUMN_LOCATION_SETTING, locationSetting);
+            cv.put(WeatherContract.LocationEntry.COLUMN_CITY_NAME, cityName);
+            cv.put(WeatherContract.LocationEntry.COLUMN_COORD_LAT, lat);
+            cv.put(WeatherContract.LocationEntry.COLUMN_COORD_LONG, lon);
+            Uri uri = resolver.insert(WeatherContract.LocationEntry.CONTENT_URI, cv);
+            return -1;
+//            return WeatherContract.LocationEntry.getIdFromUri(uri);
+        }
         return -1;
+//        return cursor.getLong(cursor.getColumnIndex(WeatherContract.LocationEntry._ID));
     }
 
     /*
@@ -330,12 +349,14 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
             final String FORMAT_PARAM = "mode";
             final String UNITS_PARAM = "units";
             final String DAYS_PARAM = "cnt";
+            final String APPID_PARAM = "APPID";
 
             Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
                     .appendQueryParameter(QUERY_PARAM, params[0])
                     .appendQueryParameter(FORMAT_PARAM, format)
                     .appendQueryParameter(UNITS_PARAM, units)
                     .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
+                    .appendQueryParameter(APPID_PARAM, BuildConfig.OPEN_WEATHER_MAP_API_KEY)
                     .build();
 
             URL url = new URL(builtUri.toString());

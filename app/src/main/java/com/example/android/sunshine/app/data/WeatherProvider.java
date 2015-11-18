@@ -242,25 +242,11 @@ public class WeatherProvider extends ContentProvider {
                 else
                     throw new android.database.SQLException("Failed to insert row into " + uri);
                 break;
-            }case LOCATION: {
+            }
+            case LOCATION: {
                 long _id = db.insert(WeatherContract.LocationEntry.TABLE_NAME, null, values);
                 if ( _id > 0 )
                     returnUri = WeatherContract.LocationEntry.buildLocationUri(_id);
-                else
-                    throw new android.database.SQLException("Failed to insert row into " + uri);
-                break;
-            }case WEATHER_WITH_LOCATION: {
-                long _id = db.insert(WeatherContract.WeatherEntry.TABLE_NAME, null, values);
-                if (_id > 0)
-                    returnUri = WeatherContract.WeatherEntry.buildWeatherUri(_id);
-                else
-                    throw new android.database.SQLException("Failed to insert row into " + uri);
-                break;
-            }case WEATHER_WITH_LOCATION_AND_DATE: {
-                normalizeDate(values);
-                long _id = db.insert(WeatherContract.WeatherEntry.TABLE_NAME, null, values);
-                if (_id > 0)
-                    returnUri = WeatherContract.WeatherEntry.buildWeatherUri(_id);
                 else
                     throw new android.database.SQLException("Failed to insert row into " + uri);
                 break;
@@ -284,34 +270,10 @@ public class WeatherProvider extends ContentProvider {
                 rowDeleted = db.delete(WeatherContract.WeatherEntry.TABLE_NAME, selection,
                         selectionArgs);
                 break;
-            } case LOCATION: {
+            }
+            case LOCATION: {
                 rowDeleted = db.delete(WeatherContract.LocationEntry.TABLE_NAME, selection,
                         selectionArgs);
-                break;
-            }
-            case WEATHER_WITH_LOCATION: {
-                String location = WeatherContract.WeatherEntry.getLocationSettingFromUri(uri);
-                long date = WeatherContract.WeatherEntry.getDateFromUri(uri);
-
-                String updatedSelection;
-                String[] updatedSelectionArgs;
-                if (date == 0){
-                    updatedSelection = sLocationSettingSelection;
-                    updatedSelectionArgs = new String[]{location};
-                } else {
-                    updatedSelection = sLocationSettingWithStartDateSelection;
-                    updatedSelectionArgs = new String[]{location, Long.toString(date)};
-                }
-                rowDeleted = db.delete(WeatherContract.WeatherEntry.TABLE_NAME, updatedSelection,
-                        updatedSelectionArgs);
-                break;
-            }
-            case WEATHER_WITH_LOCATION_AND_DATE: {
-                String location = WeatherContract.WeatherEntry.getLocationSettingFromUri(uri);
-                long date = WeatherContract.WeatherEntry.getDateFromUri(uri);
-                rowDeleted = db.delete(WeatherContract.WeatherEntry.TABLE_NAME,
-                        sLocationSettingAndDaySelection,
-                        new String[]{location, Long.toString(date)});
                 break;
             }
             default: {
@@ -345,7 +307,8 @@ public class WeatherProvider extends ContentProvider {
                 rowUpdated = db.update(WeatherContract.WeatherEntry.TABLE_NAME, values, selection,
                         selectionArgs);
                 break;
-            } case LOCATION: {
+            }
+            case LOCATION: {
                 rowUpdated = db.update(WeatherContract.LocationEntry.TABLE_NAME, values, selection,
                         selectionArgs);
                 break;
