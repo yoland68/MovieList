@@ -10,16 +10,20 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
+import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -28,12 +32,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.InvalidPropertiesFormatException;
+
 
 /**
  * Created by yolandyan on 10/25/15.
  */
-public class DetailActivityFragment extends Fragment{
+public class DetailActivityFragment extends Fragment {
     private Long mMovieId;
     private String TITLE_KEY = "title";
     private String POSTER_URL_KEY = "poster_path";
@@ -41,22 +48,35 @@ public class DetailActivityFragment extends Fragment{
     private String VOTE_AVG_KEY = "vote_average";
     private String REL_DATE_KEY = "release_date";
 
+    private ArrayAdapter<String> mTrailerAdapter;
+    private ReviewAdapter mReviewAdapter;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         setHasOptionsMenu(true);
         super.onCreate(savedInstanceState);
+
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        mTrailerAdapter =
+                new ArrayAdapter<String>(
+                        getActivity(),
+                        R.layout.list_item_videos,
+                        R.id.trailer_title,
+                        new ArrayList<String>());
+        mReviewAdapter = new ReviewAdapter(getActivity());
         View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
         Intent intent = getActivity().getIntent();
         if (intent != null && intent.hasExtra(Intent.EXTRA_TEXT)) {
             mMovieId = intent.getLongExtra(Intent.EXTRA_TEXT, -1);
-            // #Question: Should I do this?
-            assert (mMovieId != -1);
         }
+        ListView videoList = (ListView) rootView.findViewById(R.id.trailer_list);
+        videoList.setAdapter(mTrailerAdapter);
+        ListView reviewList = (ListView) rootView.findViewById(R.id.review_list);
+        reviewList.setAdapter(mReviewAdapter);
         return rootView;
     }
 
@@ -80,17 +100,23 @@ public class DetailActivityFragment extends Fragment{
                 (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
         if (activeNetwork != null && activeNetwork.isConnected()) {
-            FetchDetailMovieTask task = new FetchDetailMovieTask();
-            task.execute();
+            FetchDetailMovieTask generalTask = new FetchDetailMovieTask();
+            generalTask.execute(Consts.FetchOptions.FETCH_GENERAL);
+            FetchDetailMovieTask trailerTask = new FetchDetailMovieTask();
+            trailerTask.execute(Consts.FetchOptions.FETCH_VIDEOS);
         } else {
             Toast.makeText(getActivity(), "No Internet", Toast.LENGTH_SHORT).show();
         }
     }
 
-    public class FetchDetailMovieTask extends AsyncTask<Void, Void, HashMap<String, String>> {
+    public class FetchDetailMovieTask extends AsyncTask<Consts.FetchOptions, Void, Void> {
         private final String SUB_LOGTAG = FetchDetailMovieTask.class.getSimpleName();
+        private HashMap<String, String> mMovieGeneralData;
+        private ArrayList<String> mVideoData;
+        private ArrayList<Pair<String, String>> mReviewData;
+        private Consts.FetchOptions mOption;
 
-        public HashMap<String, String> processMovieDataString(String dataString)
+        public void processMovieDataString(String dataString)
                 throws JSONException {
             HashMap<String, String> result = new HashMap<>();
 
@@ -101,28 +127,93 @@ public class DetailActivityFragment extends Fragment{
             result.put(VOTE_AVG_KEY, movieDataJSON.getString(VOTE_AVG_KEY));
             String posterPath = movieDataJSON.getString(POSTER_URL_KEY);
             String posterUrl = Uri.parse(Consts.IMAGE_BASE_URL)
-                            .buildUpon()
-                            .appendPath(Consts.IMAGE_SIZE)
-                            .appendEncodedPath(posterPath)
-                            .appendQueryParameter(Consts.API_KEY_PARAM, Consts.API_KEY)
-                            .build().toString();
+                    .buildUpon()
+                    .appendPath(Consts.IMAGE_SIZE)
+                    .appendEncodedPath(posterPath)
+                    .appendQueryParameter(
+                            Consts.API_KEY_PARAM, BuildConfig.MOVIE_DB_API_KEY)
+                    .build().toString();
             result.put(POSTER_URL_KEY, posterUrl);
-            return result;
+            mMovieGeneralData = result;
         }
 
-        protected HashMap<String, String> doInBackground(Void...params) {
+        public void processVideosDataString(String videoDataString)
+                throws JSONException {
+            String RST = "results";
+            String LNK_PTH = "key";
+            String ST = "site";
+            String YTB = "YouTube";
+            ArrayList<String> videoResult = new ArrayList<>();
+            JSONObject jsonObject = new JSONObject(videoDataString);
+            JSONArray resultArray = jsonObject.getJSONArray(RST);
+            for (int i = 0; i < resultArray.length(); i++) {
+                JSONObject videoObject = resultArray.getJSONObject(i);
+                if (videoObject.getString(ST).equals(YTB)) {
+                    videoResult.add(videoObject.getString(LNK_PTH));
+                }
+
+            }
+            mVideoData = videoResult;
+        }
+
+        public void processReviewsDataString(String reviewDataString) throws JSONException {
+            String RST = "results";
+            String ATHR = "author";
+            String CNTNT = "content";
+            ArrayList<Pair<String, String>> reviewResult = new ArrayList<>();
+            JSONObject jsonObject = new JSONObject(reviewDataString);
+            JSONArray resultArray = jsonObject.getJSONArray(RST);
+            for (int i = 0; i < resultArray.length(); i++) {
+                JSONObject videoObject = resultArray.getJSONObject(i);
+                reviewResult.add(new Pair<String, String>(videoObject.getString(ATHR),
+                        videoObject.getString(CNTNT)));
+            }
+            mReviewData = reviewResult;
+        }
+
+        protected Void doInBackground(Consts.FetchOptions... options) {
             // Copy pasta
             HttpURLConnection conn = null;
             BufferedReader bufferedReader = null;
             String movieDataString = null;
+            if (options.length != 1) {
+                Log.e(SUB_LOGTAG, "Invalid amount options giving for FetchDetailMovieTask");
+            }
+            mOption = options[0];
 
             try {
-                Uri uri = Uri.parse(Consts.BASE_URL)
-                        .buildUpon()
-                        .appendEncodedPath(Consts.MOVIE_PATH)
-                        .appendEncodedPath(mMovieId.toString())
-                        .appendQueryParameter(Consts.API_KEY_PARAM, Consts.API_KEY)
-                        .build();
+                Uri uri = null;
+                switch (mOption) {
+                    case FETCH_GENERAL:
+                        uri = Uri.parse(Consts.BASE_URL)
+                                .buildUpon()
+                                .appendEncodedPath(Consts.MOVIE_PATH)
+                                .appendEncodedPath(mMovieId.toString())
+                                .appendQueryParameter(Consts.API_KEY_PARAM, BuildConfig.MOVIE_DB_API_KEY)
+                                .build();
+                        break;
+                    case FETCH_VIDEOS:
+                        uri = Uri.parse(Consts.BASE_URL)
+                                .buildUpon()
+                                .appendEncodedPath(Consts.MOVIE_PATH)
+                                .appendEncodedPath(mMovieId.toString())
+                                .appendEncodedPath(Consts.VIDEO_PATH)
+                                .appendQueryParameter(Consts.API_KEY_PARAM, BuildConfig.MOVIE_DB_API_KEY)
+                                .build();
+                        break;
+                    case FETCH_REVIEWS:
+                        uri = Uri.parse(Consts.BASE_URL)
+                                .buildUpon()
+                                .appendEncodedPath(Consts.MOVIE_PATH)
+                                .appendEncodedPath(mMovieId.toString())
+                                .appendEncodedPath(Consts.REVIEW_PATH)
+                                .appendQueryParameter(Consts.API_KEY_PARAM, BuildConfig.MOVIE_DB_API_KEY)
+                                .build();
+                        break;
+                    default:
+                        Log.e(SUB_LOGTAG, "Option is not valid");
+                        throw new InvalidPropertiesFormatException("Invalid option");
+                }
                 URL url = new URL(uri.toString());
                 conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
@@ -159,37 +250,58 @@ public class DetailActivityFragment extends Fragment{
             }
 
             try {
-                return processMovieDataString(movieDataString);
-            } catch (JSONException e) {
+                switch (mOption) {
+                    case FETCH_GENERAL:
+                        processMovieDataString(movieDataString);
+                        break;
+                    case FETCH_VIDEOS:
+                        processVideosDataString(movieDataString);
+                        break;
+                    case FETCH_REVIEWS:
+                        processReviewsDataString(movieDataString);
+                        break;
+                    default:
+                        throw new InvalidPropertiesFormatException("Invalid option");
+                }
+            } catch (JSONException | InvalidPropertiesFormatException e) {
                 Log.e(SUB_LOGTAG, e.getMessage(), e);
-                e.printStackTrace();
             }
             return null;
         }
 
         @Override
-        protected void onPostExecute(HashMap<String, String> result) {
-            // Find views
+        protected void onPostExecute(Void x) {
             Activity activity = getActivity();
-            ImageView imageView = (ImageView) activity.findViewById(R.id.detail_poster);
-            TextView titleTextView = (TextView) activity.findViewById(R.id.detail_title);
-            TextView relTextView = (TextView) activity.findViewById(R.id.detail_release_date);
-            TextView voteTextView = (TextView) activity.findViewById(R.id.detail_vote_average);
-            TextView descriptionTextView =
-                    (TextView) activity.findViewById(R.id.detail_description);
+            // Find views
+            switch (mOption) {
+                case FETCH_GENERAL:
+                    ImageView imageView = (ImageView) activity.findViewById(R.id.detail_poster);
+                    TextView titleTextView = (TextView) activity.findViewById(R.id.detail_title);
+                    TextView relTextView = (TextView) activity.findViewById(R.id.detail_release_date);
+                    TextView voteTextView = (TextView) activity.findViewById(R.id.detail_vote_average);
+                    TextView descriptionTextView =
+                            (TextView) activity.findViewById(R.id.detail_description);
 
-            // Change views
-            String releaseDateString = new StringBuilder("Release Date: ")
-                    .append(result.get(REL_DATE_KEY))
-                    .toString();
-            String voteAverageString = new StringBuilder("Vote Average: ")
-                    .append(result.get(VOTE_AVG_KEY))
-                    .toString();
-            titleTextView.setText(result.get(TITLE_KEY));
-            relTextView.setText(releaseDateString);
-            voteTextView.setText(voteAverageString);
-            descriptionTextView.setText(result.get(DESCRIPTION_KEY));
-            Picasso.with(getActivity()).load(result.get(POSTER_URL_KEY)).into(imageView);
+                    // Change views
+                    String releaseDateString = new StringBuilder("Release Date: ")
+                            .append(mMovieGeneralData.get(REL_DATE_KEY))
+                            .toString();
+                    String voteAverageString = new StringBuilder("Vote Average: ")
+                            .append(mMovieGeneralData.get(VOTE_AVG_KEY))
+                            .toString();
+                    titleTextView.setText(mMovieGeneralData.get(TITLE_KEY));
+                    relTextView.setText(releaseDateString);
+                    voteTextView.setText(voteAverageString);
+                    descriptionTextView.setText(mMovieGeneralData.get(DESCRIPTION_KEY));
+                    Picasso.with(getActivity()).load(mMovieGeneralData.get(POSTER_URL_KEY)).into(imageView);
+                    break;
+                case FETCH_VIDEOS:
+                    mTrailerAdapter.addAll(mVideoData);
+                    break;
+                case FETCH_REVIEWS:
+                    mReviewAdapter.setData(mReviewData);
+                    break;
+            }
         }
     }
 }

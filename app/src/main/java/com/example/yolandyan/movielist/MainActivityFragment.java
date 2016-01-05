@@ -138,7 +138,7 @@ public class MainActivityFragment extends Fragment {
                         .buildUpon()
                         .appendPath(Consts.IMAGE_SIZE)
                         .appendEncodedPath(moviePath)
-                        .appendQueryParameter(Consts.API_KEY_PARAM, Consts.API_KEY)
+                        .appendQueryParameter(Consts.API_KEY_PARAM, BuildConfig.MOVIE_DB_API_KEY)
                         .build().toString();
                 movieHashMap.put(movieId, moviePosterUrl);
             }
@@ -165,7 +165,7 @@ public class MainActivityFragment extends Fragment {
                         .buildUpon()
                         .appendEncodedPath(Consts.MOVIE_PATH)
                         .appendEncodedPath(sortPath)
-                        .appendQueryParameter(Consts.API_KEY_PARAM, Consts.API_KEY)
+                        .appendQueryParameter(Consts.API_KEY_PARAM, BuildConfig.MOVIE_DB_API_KEY)
                         .build();
                 URL url = new URL(uri.toString());
                 conn = (HttpURLConnection) url.openConnection();
