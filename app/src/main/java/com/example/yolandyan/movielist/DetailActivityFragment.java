@@ -35,6 +35,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.InvalidPropertiesFormatException;
+import java.util.logging.Logger;
 
 
 /**
@@ -104,6 +105,8 @@ public class DetailActivityFragment extends Fragment {
             generalTask.execute(Consts.FetchOptions.FETCH_GENERAL);
             FetchDetailMovieTask trailerTask = new FetchDetailMovieTask();
             trailerTask.execute(Consts.FetchOptions.FETCH_VIDEOS);
+            FetchDetailMovieTask reviewTask = new FetchDetailMovieTask();
+            reviewTask.execute(Consts.FetchOptions.FETCH_REVIEWS);
         } else {
             Toast.makeText(getActivity(), "No Internet", Toast.LENGTH_SHORT).show();
         }
@@ -202,6 +205,7 @@ public class DetailActivityFragment extends Fragment {
                                 .build();
                         break;
                     case FETCH_REVIEWS:
+                        Log.d(SUB_LOGTAG, "Reviewing task");
                         uri = Uri.parse(Consts.BASE_URL)
                                 .buildUpon()
                                 .appendEncodedPath(Consts.MOVIE_PATH)
@@ -299,6 +303,7 @@ public class DetailActivityFragment extends Fragment {
                     mTrailerAdapter.addAll(mVideoData);
                     break;
                 case FETCH_REVIEWS:
+                    Log.d(SUB_LOGTAG, mReviewData.toString());
                     mReviewAdapter.setData(mReviewData);
                     break;
             }
