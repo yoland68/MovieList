@@ -1,7 +1,6 @@
 package com.example.yolandyan.movielist;
 
 import android.content.Context;
-import android.util.Log;
 import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,7 +33,7 @@ public class ReviewAdapter extends BaseAdapter {
 
     @Override
     public long getItemId(int position) {
-        return position+1;
+        return position;
     }
 
     @Override
@@ -47,10 +46,6 @@ public class ReviewAdapter extends BaseAdapter {
         TextView userTextView = (TextView) convertView.findViewById(R.id.review_user);
         TextView reviewTextView = (TextView) convertView.findViewById(R.id.review_text);
         Pair<String, String> item = (Pair<String, String>)getItem(position);
-        Log.d("YOLAND: ", String.format("Pair is: %s", item.toString()));
-        Log.d("YOLAND: ", String.format("Position is %s", Integer.toString(position)));
-        Log.d("YOLAND: ", String.format("First is %s", item.first));
-        Log.d("YOLAND: ", String.format("Second is %s", item.second));
         userTextView.setText(item.first);
         reviewTextView.setText(item.second);
         return convertView;

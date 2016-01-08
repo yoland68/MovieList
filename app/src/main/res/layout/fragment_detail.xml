@@ -4,32 +4,35 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
     tools:context=".DetailActivity$DetailActivityFragment">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
-
-        <include layout="@layout/content_detail_general" />
-
         <LinearLayout
-            android:layout_width="fill_parent"
-            android:layout_height="2dp"
-            android:layout_margin="10dp"
-            android:background="#AAA"
-            android:orientation="horizontal" />
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:isScrollContainer="true"
+            android:orientation="vertical">
 
-        <include layout="@layout/content_detail_videos" />
+            <include layout="@layout/content_detail_general" />
 
-        <LinearLayout
-            android:layout_width="fill_parent"
-            android:layout_height="2dp"
-            android:layout_margin="10dp"
-            android:background="#AAA"
-            android:orientation="horizontal" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:layout_margin="10dp"
+                android:background="#AAA"
+                android:orientation="horizontal" />
 
-        <include layout="@layout/content_detail_reviews" />
-    </LinearLayout>
+            <include layout="@layout/content_detail_videos" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:layout_margin="10dp"
+                android:background="#AAA"
+                android:orientation="horizontal" />
+
+            <include layout="@layout/content_detail_reviews" />
+
+        </LinearLayout>
+
 </FrameLayout>

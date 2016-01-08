@@ -15,7 +15,6 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -35,7 +34,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.InvalidPropertiesFormatException;
-import java.util.logging.Logger;
+import java.util.LinkedHashMap;
 
 
 /**
@@ -49,7 +48,7 @@ public class DetailActivityFragment extends Fragment {
     private String VOTE_AVG_KEY = "vote_average";
     private String REL_DATE_KEY = "release_date";
 
-    private ArrayAdapter<String> mTrailerAdapter;
+    private VideoAdapter mVideoAdapter;
     private ReviewAdapter mReviewAdapter;
 
     @Override
@@ -62,12 +61,8 @@ public class DetailActivityFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        mTrailerAdapter =
-                new ArrayAdapter<String>(
-                        getActivity(),
-                        R.layout.list_item_videos,
-                        R.id.trailer_title,
-                        new ArrayList<String>());
+        mVideoAdapter =
+                new VideoAdapter(getActivity());
         mReviewAdapter = new ReviewAdapter(getActivity());
         View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
         Intent intent = getActivity().getIntent();
@@ -75,7 +70,7 @@ public class DetailActivityFragment extends Fragment {
             mMovieId = intent.getLongExtra(Intent.EXTRA_TEXT, -1);
         }
         ListView videoList = (ListView) rootView.findViewById(R.id.trailer_list);
-        videoList.setAdapter(mTrailerAdapter);
+        videoList.setAdapter(mVideoAdapter);
         ListView reviewList = (ListView) rootView.findViewById(R.id.review_list);
         reviewList.setAdapter(mReviewAdapter);
         return rootView;
@@ -115,7 +110,7 @@ public class DetailActivityFragment extends Fragment {
     public class FetchDetailMovieTask extends AsyncTask<Consts.FetchOptions, Void, Void> {
         private final String SUB_LOGTAG = FetchDetailMovieTask.class.getSimpleName();
         private HashMap<String, String> mMovieGeneralData;
-        private ArrayList<String> mVideoData;
+        private LinkedHashMap<String, String> mVideoData;
         private ArrayList<Pair<String, String>> mReviewData;
         private Consts.FetchOptions mOption;
 
@@ -145,16 +140,23 @@ public class DetailActivityFragment extends Fragment {
             String RST = "results";
             String LNK_PTH = "key";
             String ST = "site";
+            String NM = "name";
             String YTB = "YouTube";
-            ArrayList<String> videoResult = new ArrayList<>();
+
+            String youtubeThumbnail = "mqdefault.jpg";
+            LinkedHashMap<String, String> videoResult = new LinkedHashMap<>();
             JSONObject jsonObject = new JSONObject(videoDataString);
             JSONArray resultArray = jsonObject.getJSONArray(RST);
             for (int i = 0; i < resultArray.length(); i++) {
                 JSONObject videoObject = resultArray.getJSONObject(i);
                 if (videoObject.getString(ST).equals(YTB)) {
-                    videoResult.add(videoObject.getString(LNK_PTH));
+                    String link = Uri.parse("https://img.youtube.com/vi/")
+                            .buildUpon().appendEncodedPath(videoObject.getString(LNK_PTH))
+                            .appendEncodedPath(youtubeThumbnail)
+                            .build()
+                            .toString();
+                    videoResult.put(link, videoObject.getString(NM));
                 }
-
             }
             mVideoData = videoResult;
         }
@@ -172,6 +174,7 @@ public class DetailActivityFragment extends Fragment {
                         videoObject.getString(CNTNT)));
             }
             mReviewData = reviewResult;
+            Log.d(SUB_LOGTAG, String.format("Size of mReviewData is %s", Integer.toString(mReviewData.size())));
         }
 
         protected Void doInBackground(Consts.FetchOptions... options) {
@@ -300,7 +303,9 @@ public class DetailActivityFragment extends Fragment {
                     Picasso.with(getActivity()).load(mMovieGeneralData.get(POSTER_URL_KEY)).into(imageView);
                     break;
                 case FETCH_VIDEOS:
-                    mTrailerAdapter.addAll(mVideoData);
+                    String[] links = mVideoData.keySet().toArray(new String[mVideoData.size()]);
+                    String[] titles = mVideoData.values().toArray(new String[mVideoData.size()]);
+                    mVideoAdapter.setData(links, titles);
                     break;
                 case FETCH_REVIEWS:
                     Log.d(SUB_LOGTAG, mReviewData.toString());
