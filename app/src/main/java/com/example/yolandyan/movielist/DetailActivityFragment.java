@@ -8,6 +8,7 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.util.Pair;
@@ -15,6 +16,7 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -69,10 +71,21 @@ public class DetailActivityFragment extends Fragment {
         if (intent != null && intent.hasExtra(Intent.EXTRA_TEXT)) {
             mMovieId = intent.getLongExtra(Intent.EXTRA_TEXT, -1);
         }
-        ListView videoList = (ListView) rootView.findViewById(R.id.trailer_list);
+        final ListView videoList = (ListView) rootView.findViewById(R.id.trailer_list);
         videoList.setAdapter(mVideoAdapter);
         ListView reviewList = (ListView) rootView.findViewById(R.id.review_list);
         reviewList.setAdapter(mReviewAdapter);
+
+        videoList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                VideoAdapter videoAdapter = (VideoAdapter)videoList.getAdapter();
+                Uri link = Utilities.constructYoutubeLink(Utilities.youtubeUrl,
+                        videoAdapter.getKey(position), null);
+                Intent intent = new Intent(Intent.ACTION_VIEW, link);
+                startActivity(intent);
+            }
+        });
         return rootView;
     }
 
@@ -143,19 +156,13 @@ public class DetailActivityFragment extends Fragment {
             String NM = "name";
             String YTB = "YouTube";
 
-            String youtubeThumbnail = "mqdefault.jpg";
             LinkedHashMap<String, String> videoResult = new LinkedHashMap<>();
             JSONObject jsonObject = new JSONObject(videoDataString);
             JSONArray resultArray = jsonObject.getJSONArray(RST);
             for (int i = 0; i < resultArray.length(); i++) {
                 JSONObject videoObject = resultArray.getJSONObject(i);
                 if (videoObject.getString(ST).equals(YTB)) {
-                    String link = Uri.parse("https://img.youtube.com/vi/")
-                            .buildUpon().appendEncodedPath(videoObject.getString(LNK_PTH))
-                            .appendEncodedPath(youtubeThumbnail)
-                            .build()
-                            .toString();
-                    videoResult.put(link, videoObject.getString(NM));
+                    videoResult.put(videoObject.getString(LNK_PTH), videoObject.getString(NM));
                 }
             }
             mVideoData = videoResult;

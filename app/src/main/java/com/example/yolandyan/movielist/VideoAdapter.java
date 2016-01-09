@@ -1,6 +1,8 @@
 package com.example.yolandyan.movielist;
 
 import android.content.Context;
+import android.net.Uri;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,7 +16,7 @@ import com.squareup.picasso.Picasso;
  * Created by yolandyan on 1/7/16.
  */
 public class VideoAdapter extends BaseAdapter{
-    private String[] mLinks = {};
+    private String[] mKeys = {};
     private String[] mVideoNames = {};
     private Context mContext;
 
@@ -24,7 +26,7 @@ public class VideoAdapter extends BaseAdapter{
 
     @Override
     public int getCount() {
-        return mLinks.length;
+        return mKeys.length;
     }
 
     @Override
@@ -37,6 +39,10 @@ public class VideoAdapter extends BaseAdapter{
         return position;
     }
 
+    public String getKey(int position) {
+        return mKeys[position];
+    }
+
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
@@ -45,14 +51,15 @@ public class VideoAdapter extends BaseAdapter{
             convertView = inflater.inflate(R.layout.list_item_videos, null);
         }
         ImageView thumbnail = (ImageView) convertView.findViewById(R.id.video_image);
-        Picasso.with(mContext).load(mLinks[position]).into(thumbnail);
+        Uri link = Utilities.constructYoutubeLink(Utilities.imageUrl, mKeys[position], Utilities.mQuality);
+        Picasso.with(mContext).load(link.toString()).into(thumbnail);
         TextView videoTitle = (TextView) convertView.findViewById(R.id.video_title);
         videoTitle.setText(mVideoNames[position]);
         return convertView;
     }
 
-    public void setData(String[] links, String[] titles) {
-        mLinks = links;
+    public void setData(String[] keys, String[] titles) {
+        mKeys = keys;
         mVideoNames = titles;
         notifyDataSetChanged();
     }
