@@ -1,0 +1,53 @@
+
+pular movie 2 =
+
+== Steps ==
+* Fetch movie trailer
+    * <s>create layouts for trailer</s>
+    * write overall flow for trailer list
+        * <s>Change fetch data task in detail view to be once for all</s>
+        * <s>MVP for trailer list</s>
+        * <s>MVP for review list</s>
+    * <s>create adapters</s>
+    * <s>add clickable componenet to it</s>
+* Create content provider for favorate movies
+    * <s>On paper how it works for Sunshine</s>
+    * <s>ContentProvider</s>
+        * <s>getType</s>
+        * <s>query</s>
+        * <s>insert</s>
+        * <s>delete</s>
+        * <s>update</s>
+* <s>Click handler</s>
+    * <s>Click on the star, add it to database</s>
+    * <s>Click again delete from database</s>
+* Show Fav movies from database
+* Loader
+    * seperate the fetch task
+    * user loader only offline
+* Clean up UI
+    * nice looking text
+    * responsive images
+
+== Advanced ==
+* Create viewholder for Adapters http://www.vogella.com/tutorials/AndroidListView/article.html#title
+* Learn about how each test works
+* ContentProvider bulk insert
+* loader for everything except every film
+* go through the rest of sunshine
+* go through webcast courses
+* trailer with a image and clickable link (Youtube API)
+* search ability
+
+== Other ==
+* Send out to other people for suggestions
+* Maybe move Utilities static strings to Const
+* Refactor all the names
+    * trailer to videos
+    * video and review multiple form
+        * Change fetch data task in detail view to be once for all
+
+== Misc ==
+* api for movie db: 964a973c564ea29df85b4cb40c6bec10
+        * Change fetch data task in detail view to be once for all
+
