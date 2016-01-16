@@ -1,13 +1,22 @@
 package com.example.yolandyan.movielist.data;
 
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.AbstractWindowedCursor;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.test.AndroidTestCase;
+import android.util.Log;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.sql.Blob;
+import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
@@ -22,11 +31,17 @@ public class TestUtilities extends AndroidTestCase{
         valueCursor.close();
     }
 
+
     static void validateCurrentRecord(String error, Cursor valueCursor, ContentValues expectedValues) {
         Set<Map.Entry<String, Object>> valueSet = expectedValues.valueSet();
         for (Map.Entry<String, Object> entry : valueSet) {
             String columnName = entry.getKey();
             int idx = valueCursor.getColumnIndex(columnName);
+            if (entry.getValue().getClass().equals(byte[].class)){
+                byte[] blobData = valueCursor.getBlob(idx);
+                assertTrue("Blob data is not equal", Arrays.equals((byte[]) entry.getValue(), blobData));
+                continue;
+            }
             assertFalse("Column '" + columnName + "' not found. " + error, idx == -1);
             String expectedValue = entry.getValue().toString();
             assertEquals("Value '" + entry.getValue().toString() +

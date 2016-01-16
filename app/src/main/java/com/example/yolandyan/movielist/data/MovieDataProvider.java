@@ -5,6 +5,7 @@ import android.content.ContentValues;
 import android.content.UriMatcher;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.DropBoxManager;
 import android.support.annotation.Nullable;
 
 /**
@@ -21,8 +22,8 @@ public class MovieDataProvider extends ContentProvider {
         final UriMatcher matcher = new UriMatcher(UriMatcher.NO_MATCH);
         final String authority = MovieDataContract.CONTENT_AUTHORITY;
 
-        matcher.addURI(authority, MovieDataContract.PATH_ALL_MOVIES, ALL_MOVIES);
-        matcher.addURI(authority, MovieDataContract.PATH_ONE_MOVIE + "/#", ONE_MOVIE);
+        matcher.addURI(authority, MovieDataContract.MovieEntry.PATH_MOVIE + "/#", ONE_MOVIE);
+        matcher.addURI(authority, MovieDataContract.MovieEntry.PATH_MOVIE, ALL_MOVIES);
 
         return matcher;
     }
@@ -83,16 +84,39 @@ public class MovieDataProvider extends ContentProvider {
     @Nullable
     @Override
     public Uri insert(Uri uri, ContentValues values) {
-        return null;
+        int match = sUriMatcher.match(uri);
+        switch (match) {
+            case ONE_MOVIE:
+                long id = mOpenHelper.getWritableDatabase().insert(MovieDataContract.MovieEntry.TABLE_NAME, null, values);
+                return MovieDataContract.MovieEntry.buildUriWithId(id);
+            default:
+                throw new UnsupportedOperationException("Invalid uri: " + uri);
+        }
     }
 
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
-        return 0;
+        int match = sUriMatcher.match(uri);
+        switch (match) {
+            case ONE_MOVIE:
+                return mOpenHelper.getWritableDatabase().delete(MovieDataContract.MovieEntry.TABLE_NAME, selection, selectionArgs);
+            case ALL_MOVIES:
+                return mOpenHelper.getWritableDatabase().delete(MovieDataContract.MovieEntry.TABLE_NAME, null, null);
+            default:
+                throw new UnsupportedOperationException("Invalid uri: " + uri);
+        }
     }
 
     @Override
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
-        return 0;
+        int match = sUriMatcher.match(uri);
+        switch (match) {
+            case ONE_MOVIE:
+                return mOpenHelper.getWritableDatabase().update(MovieDataContract.MovieEntry.TABLE_NAME, values, selection, selectionArgs);
+            case ALL_MOVIES:
+                return mOpenHelper.getWritableDatabase().update(MovieDataContract.MovieEntry.TABLE_NAME, values, null, null);
+            default:
+                throw new UnsupportedOperationException("Invalid uri: " + uri);
+        }
     }
 }

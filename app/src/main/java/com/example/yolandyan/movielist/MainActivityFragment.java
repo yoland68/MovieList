@@ -112,7 +112,6 @@ public class MainActivityFragment extends Fragment {
             Toast.makeText(getActivity(), "No Internet", Toast.LENGTH_SHORT).show();
         }
 
-        // Use shared sort preference to pass api url path accordingly
 
     }
 
