@@ -1,9 +1,11 @@
 package com.example.yolandyan.movielist.data;
 
+import android.annotation.TargetApi;
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.UriMatcher;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.DropBoxManager;
 import android.support.annotation.Nullable;
@@ -96,15 +98,27 @@ public class MovieDataProvider extends ContentProvider {
 
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
+        final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
         int match = sUriMatcher.match(uri);
+        int rowDeleted;
         switch (match) {
             case ONE_MOVIE:
-                return mOpenHelper.getWritableDatabase().delete(MovieDataContract.MovieEntry.TABLE_NAME, selection, selectionArgs);
+                String key = MovieDataContract.MovieEntry.getMovieKeyFromUri(uri);
+                rowDeleted = db.delete(
+                        MovieDataContract.MovieEntry.TABLE_NAME,
+                        MovieDataContract.MovieEntry.KEY_COL + "=?",
+                        new String[]{key});
+                break;
             case ALL_MOVIES:
-                return mOpenHelper.getWritableDatabase().delete(MovieDataContract.MovieEntry.TABLE_NAME, null, null);
+                rowDeleted = db.delete(MovieDataContract.MovieEntry.TABLE_NAME, null, null);
+                break;
             default:
                 throw new UnsupportedOperationException("Invalid uri: " + uri);
         }
+        if (rowDeleted != 0){
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
+        return rowDeleted;
     }
 
     @Override
@@ -118,5 +132,13 @@ public class MovieDataProvider extends ContentProvider {
             default:
                 throw new UnsupportedOperationException("Invalid uri: " + uri);
         }
+    }
+
+
+    @Override
+    @TargetApi(11)
+    public void shutdown() {
+        mOpenHelper.close();
+        super.shutdown();
     }
 }
