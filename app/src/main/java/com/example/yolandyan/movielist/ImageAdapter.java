@@ -5,11 +5,8 @@ import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Movie;
 import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.support.v4.content.ContextCompat;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,7 +18,6 @@ import com.squareup.picasso.Picasso;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.zip.Inflater;
 
 
 /**
@@ -106,12 +102,10 @@ public class ImageAdapter extends BaseAdapter {
                     clickImageView.setImageDrawable(ContextCompat.getDrawable(mContext, R.drawable.star));
                 } else {
                     Long x = getItemId(position);
-                    Log.d("#YOLAND", x.toString());
                     String[] xString = new String[]{x.toString()};
                     int rows = mContext.getContentResolver().delete(
-                            MovieDataContract.MovieEntry.buildUriWithId(getItemId(position)),
-                            MovieDataContract.MovieEntry.KEY_COL, xString
-                        );
+                            MovieDataContract.MovieEntry.buildUriWithId(getItemId(position)),null, null
+                    );
                     ImageView clickImageView = (ImageView) v.findViewById(R.id.main_star);
                     clickImageView.setImageDrawable(ContextCompat.getDrawable(mContext, R.drawable.star_empty));
                 }

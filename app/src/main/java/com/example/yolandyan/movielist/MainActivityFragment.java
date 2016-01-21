@@ -1,8 +1,12 @@
 package com.example.yolandyan.movielist;
 
+import android.app.LoaderManager;
 import android.content.Context;
+import android.content.CursorLoader;
 import android.content.Intent;
+import android.content.Loader;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -19,6 +23,8 @@ import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.Toast;
 
+import com.example.yolandyan.movielist.data.MovieDataContract;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -33,11 +39,20 @@ import java.util.LinkedHashMap;
 /**
  * A placeholder fragment containing a simple view.
  */
-public class MainActivityFragment extends Fragment {
+public class MainActivityFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>{
     private final String LOGTAG = MainActivity.class.getSimpleName();
 
     private ImageAdapter mImageAdapter;
     private GridView mGridView;
+    private static final String[] MOVIE_COLUMNS = {
+            MovieDataContract.MovieEntry.TABLE_NAME,
+            MovieDataContract.MovieEntry.KEY_COL ,
+            MovieDataContract.MovieEntry.TITLE_COL,
+            MovieDataContract.MovieEntry.POSTER_COL,
+            MovieDataContract.MovieEntry.DESC_COL,
+            MovieDataContract.MovieEntry.RELEASE_DATE_COL,
+            MovieDataContract.MovieEntry.RATING_COL,
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -111,7 +126,27 @@ public class MainActivityFragment extends Fragment {
         } else {
             Toast.makeText(getActivity(), "No Internet", Toast.LENGTH_SHORT).show();
         }
+    }
 
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        Uri allMovieUri = MovieDataContract.MovieEntry.CONTENT_URI;
+        return new CursorLoader(getActivity(),
+                allMovieUri,
+                MOVIE_COLUMNS,
+                null,
+                null,
+                null
+                );
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
 
     }
 

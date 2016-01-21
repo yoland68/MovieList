@@ -1,15 +1,19 @@
 package com.example.yolandyan.movielist;
 
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.util.Pair;
 import android.view.LayoutInflater;
@@ -22,6 +26,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.yolandyan.movielist.data.MovieDataContract;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
@@ -29,6 +34,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -297,6 +303,57 @@ public class DetailActivityFragment extends Fragment {
                             (TextView) activity.findViewById(R.id.detail_description);
 
                     // Change views
+                    Cursor cursor = getActivity().getContentResolver().query(
+                            MovieDataContract.MovieEntry.buildUriWithId(mMovieId),
+                            null,
+                            null,
+                            null,
+                            null
+                    );
+                    ImageView detailStar = (ImageView)getActivity().findViewById(R.id.detail_star);
+                    if (!(cursor.moveToFirst()) || cursor.getCount() ==0){
+                        detailStar.setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.star_empty));
+                    } else {
+                        detailStar.setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.star));
+                    }
+
+
+                    detailStar.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            Cursor clickCursor = getActivity().getContentResolver().query(
+                                    MovieDataContract.MovieEntry.buildUriWithId(mMovieId),
+                                    null,
+                                    null,
+                                    null,
+                                    null
+                            );
+                            if (!(clickCursor.moveToFirst()) || clickCursor.getCount() == 0) {
+                                ImageView imageView = (ImageView) getActivity().findViewById(R.id.detail_poster);
+                                BitmapDrawable drawable = (BitmapDrawable) imageView.getDrawable();
+                                Bitmap bitmap = drawable.getBitmap();
+                                ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+                                byte[] bitmapdata = stream.toByteArray();
+                                ContentValues cv = new ContentValues();
+                                cv.put(MovieDataContract.MovieEntry.KEY_COL, mMovieId);
+                                cv.put(MovieDataContract.MovieEntry.TITLE_COL, mMovieGeneralData.get(TITLE_KEY));
+                                cv.put(MovieDataContract.MovieEntry.POSTER_COL, bitmapdata);
+                                cv.put(MovieDataContract.MovieEntry.DESC_COL, mMovieGeneralData.get(DESCRIPTION_KEY));
+                                cv.put(MovieDataContract.MovieEntry.RATING_COL, mMovieGeneralData.get(VOTE_AVG_KEY));
+                                cv.put(MovieDataContract.MovieEntry.RELEASE_DATE_COL, mMovieGeneralData.get(REL_DATE_KEY));
+                                getActivity().getContentResolver().insert(MovieDataContract.MovieEntry.buildUriWithId(mMovieId), cv);
+                                ImageView clickedStar = (ImageView)getActivity().findViewById(R.id.detail_star);
+                                clickedStar .setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.star));
+                            } else {
+                                getActivity().getContentResolver().delete(
+                                        MovieDataContract.MovieEntry.buildUriWithId((mMovieId)), null, null
+                                );
+                                ImageView clickedStar = (ImageView)getActivity().findViewById(R.id.detail_star);
+                                clickedStar.setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.star_empty));
+                            }
+                        }
+                    });
                     String releaseDateString = new StringBuilder("Release Date: ")
                             .append(mMovieGeneralData.get(REL_DATE_KEY))
                             .toString();
