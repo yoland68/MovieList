@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -13,10 +14,17 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v7.widget.ShareActionProvider;
 import android.util.Log;
 import android.util.Pair;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,6 +42,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -48,22 +57,26 @@ import java.util.LinkedHashMap;
 /**
  * Created by yolandyan on 10/25/15.
  */
-public class DetailActivityFragment extends Fragment {
+public class DetailActivityFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
+    private final String LOGTAG = getClass().getSimpleName();
     private Long mMovieId;
+    private ShareActionProvider mShareActionProvider;
     private String TITLE_KEY = "title";
     private String POSTER_URL_KEY = "poster_path";
     private String DESCRIPTION_KEY = "overview";
     private String VOTE_AVG_KEY = "vote_average";
     private String REL_DATE_KEY = "release_date";
+    private String mFirstLink;
 
     private VideoAdapter mVideoAdapter;
     private ReviewAdapter mReviewAdapter;
+
+    public static String DETAIL_MOVIE_ID = "Detail movie id";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         setHasOptionsMenu(true);
         super.onCreate(savedInstanceState);
-
     }
 
     @Override
@@ -72,36 +85,73 @@ public class DetailActivityFragment extends Fragment {
         mVideoAdapter =
                 new VideoAdapter(getActivity());
         mReviewAdapter = new ReviewAdapter(getActivity());
-        View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
-        Intent intent = getActivity().getIntent();
-        if (intent != null && intent.hasExtra(Intent.EXTRA_TEXT)) {
-            mMovieId = intent.getLongExtra(Intent.EXTRA_TEXT, -1);
-        }
-        final ListView videoList = (ListView) rootView.findViewById(R.id.trailer_list);
-        videoList.setAdapter(mVideoAdapter);
-        ListView reviewList = (ListView) rootView.findViewById(R.id.review_list);
-        reviewList.setAdapter(mReviewAdapter);
+        if (getArguments() != null) {
+            mMovieId = getArguments().getLong(DETAIL_MOVIE_ID);
+            View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
+            final ListView videoList = (ListView) rootView.findViewById(R.id.trailer_list);
+            videoList.setAdapter(mVideoAdapter);
+            ListView reviewList = (ListView) rootView.findViewById(R.id.review_list);
+            reviewList.setAdapter(mReviewAdapter);
 
-        videoList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                VideoAdapter videoAdapter = (VideoAdapter)videoList.getAdapter();
-                Uri link = Utilities.constructYoutubeLink(Utilities.youtubeUrl,
-                        videoAdapter.getKey(position), null);
-                Intent intent = new Intent(Intent.ACTION_VIEW, link);
-                startActivity(intent);
-            }
-        });
-        return rootView;
+            videoList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    VideoAdapter videoAdapter = (VideoAdapter) videoList.getAdapter();
+                    Uri link = Utilities.constructYoutubeLink(Utilities.youtubeUrl,
+                            videoAdapter.getKey(position), null);
+                    Intent intent = new Intent(Intent.ACTION_VIEW, link);
+                    startActivity(intent);
+                }
+            });
+            return rootView;
+        }
+        return null;
     }
 
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflator){
+        inflator.inflate(R.menu.menu_detail_frag, menu);
+        MenuItem menuItem = menu.findItem(R.id.action_share);
+        mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(menuItem);
+        if (mFirstLink != null) {
+            mShareActionProvider.setShareIntent(createShareIntent());
+        }
+    }
+
+    private Intent createShareIntent() {
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+        shareIntent.setType("text/plain");
+        shareIntent.putExtra(Intent.EXTRA_TEXT, String.format("Check out this trailer: %s", mFirstLink));
+        return shareIntent;
+    }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.action_update_detail) {
-            updateMovieData();
+        int id = item.getItemId();
+        switch (id) {
+            case R.id.action_update_detail:
+                updateMovieData();
+                break;
+            case R.id.action_share:
+                Intent sendIntent = new Intent();
+                sendIntent.setAction(Intent.ACTION_SEND);
+                sendIntent.putExtra(Intent.EXTRA_TEXT,
+                        String.format("Check out this trailer: %s",
+                                mFirstLink == null ? "" : mFirstLink));
+                sendIntent.setType("text/plain");
+                startActivity(sendIntent);
+                break;
+            default:
+                Log.e(LOGTAG, "Selected element id invalid");
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        getLoaderManager().initLoader(0, null, this);
+        super.onActivityCreated(savedInstanceState);
     }
 
     @Override
@@ -115,15 +165,62 @@ public class DetailActivityFragment extends Fragment {
                 (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
         if (activeNetwork != null && activeNetwork.isConnected()) {
-            FetchDetailMovieTask generalTask = new FetchDetailMovieTask();
-            generalTask.execute(Consts.FetchOptions.FETCH_GENERAL);
-            FetchDetailMovieTask trailerTask = new FetchDetailMovieTask();
-            trailerTask.execute(Consts.FetchOptions.FETCH_VIDEOS);
-            FetchDetailMovieTask reviewTask = new FetchDetailMovieTask();
-            reviewTask.execute(Consts.FetchOptions.FETCH_REVIEWS);
+            if (mMovieId != null) {
+                FetchDetailMovieTask generalTask = new FetchDetailMovieTask();
+                generalTask.execute(Consts.FetchOptions.FETCH_GENERAL);
+                FetchDetailMovieTask trailerTask = new FetchDetailMovieTask();
+                trailerTask.execute(Consts.FetchOptions.FETCH_VIDEOS);
+                FetchDetailMovieTask reviewTask = new FetchDetailMovieTask();
+                reviewTask.execute(Consts.FetchOptions.FETCH_REVIEWS);
+            }
         } else {
+            getLoaderManager().restartLoader(0, null, this);
             Toast.makeText(getActivity(), "No Internet", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        if (mMovieId != null) {
+            Uri movieUri = MovieDataContract.MovieEntry.buildUriWithId(mMovieId);
+            return new CursorLoader(getActivity(), movieUri, null, null, null, null);
+        }
+        return null;
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        if (data != null) {
+            if (data.moveToFirst()) {
+                Activity activity = getActivity();
+                ImageView imageView = (ImageView) activity.findViewById(R.id.detail_poster);
+                TextView titleTextView = (TextView) activity.findViewById(R.id.detail_title);
+                TextView relTextView = (TextView) activity.findViewById(R.id.detail_release_date);
+                TextView voteTextView = (TextView) activity.findViewById(R.id.detail_vote_average);
+                TextView descriptionTextView =
+                        (TextView) activity.findViewById(R.id.detail_description);
+                int poster = data.getColumnIndex(MovieDataContract.MovieEntry.POSTER_COL);
+                int title = data.getColumnIndex(MovieDataContract.MovieEntry.TITLE_COL);
+                int release = data.getColumnIndex(MovieDataContract.MovieEntry.RELEASE_DATE_COL);
+                int vote = data.getColumnIndex(MovieDataContract.MovieEntry.RATING_COL);
+                int desc = data.getColumnIndex(MovieDataContract.MovieEntry.DESC_COL);
+
+                byte[] imageByteArray = data.getBlob(poster);
+                ByteArrayInputStream imageStream = new ByteArrayInputStream(imageByteArray);
+                Bitmap theImage = BitmapFactory.decodeStream(imageStream);
+                imageView.setImageBitmap(theImage);
+
+                titleTextView.setText(data.getString(title));
+                relTextView.setText(data.getString(release));
+                voteTextView.setText(data.getString(vote));
+                descriptionTextView.setText(data.getString(desc));
+            }
+        }
+
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
     }
 
     public class FetchDetailMovieTask extends AsyncTask<Consts.FetchOptions, Void, Void> {
@@ -310,8 +407,8 @@ public class DetailActivityFragment extends Fragment {
                             null,
                             null
                     );
-                    ImageView detailStar = (ImageView)getActivity().findViewById(R.id.detail_star);
-                    if (!(cursor.moveToFirst()) || cursor.getCount() ==0){
+                    ImageView detailStar = (ImageView) getActivity().findViewById(R.id.detail_star);
+                    if (!(cursor.moveToFirst()) || cursor.getCount() == 0) {
                         detailStar.setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.star_empty));
                     } else {
                         detailStar.setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.star));
@@ -343,13 +440,13 @@ public class DetailActivityFragment extends Fragment {
                                 cv.put(MovieDataContract.MovieEntry.RATING_COL, mMovieGeneralData.get(VOTE_AVG_KEY));
                                 cv.put(MovieDataContract.MovieEntry.RELEASE_DATE_COL, mMovieGeneralData.get(REL_DATE_KEY));
                                 getActivity().getContentResolver().insert(MovieDataContract.MovieEntry.buildUriWithId(mMovieId), cv);
-                                ImageView clickedStar = (ImageView)getActivity().findViewById(R.id.detail_star);
-                                clickedStar .setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.star));
+                                ImageView clickedStar = (ImageView) getActivity().findViewById(R.id.detail_star);
+                                clickedStar.setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.star));
                             } else {
                                 getActivity().getContentResolver().delete(
                                         MovieDataContract.MovieEntry.buildUriWithId((mMovieId)), null, null
                                 );
-                                ImageView clickedStar = (ImageView)getActivity().findViewById(R.id.detail_star);
+                                ImageView clickedStar = (ImageView) getActivity().findViewById(R.id.detail_star);
                                 clickedStar.setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.star_empty));
                             }
                         }
@@ -369,6 +466,11 @@ public class DetailActivityFragment extends Fragment {
                 case FETCH_VIDEOS:
                     String[] links = mVideoData.keySet().toArray(new String[mVideoData.size()]);
                     String[] titles = mVideoData.values().toArray(new String[mVideoData.size()]);
+                    mFirstLink = links.length == 0 ?
+                            null : Utilities.constructYoutubeLink(Utilities.youtubeUrl, links[0], null).toString();
+                    if (mShareActionProvider != null) {
+                        mShareActionProvider.setShareIntent(createShareIntent());
+                    }
                     mVideoAdapter.setData(links, titles);
                     break;
                 case FETCH_REVIEWS:

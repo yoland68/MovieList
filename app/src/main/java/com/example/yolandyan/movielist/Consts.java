@@ -18,6 +18,7 @@ public class Consts {
 
     public static final String SORT_BY_POPULARITY = "popularity";
     public static final String SORT_BY_RATING = "rating";
+    public static final String SORT_BY_FAVORITE = "favorite";
     public static final String SORT_KEY = "sort";
 
     public static enum FetchOptions {

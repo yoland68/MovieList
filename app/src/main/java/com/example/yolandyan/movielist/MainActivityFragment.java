@@ -1,19 +1,19 @@
 package com.example.yolandyan.movielist;
 
-import android.app.LoaderManager;
+import android.annotation.TargetApi;
 import android.content.Context;
-import android.content.CursorLoader;
-import android.content.Intent;
-import android.content.Loader;
+import android.support.v4.content.CursorLoader;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -34,24 +34,29 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
 /**
  * A placeholder fragment containing a simple view.
  */
-public class MainActivityFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>{
+public class MainActivityFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
     private final String LOGTAG = MainActivity.class.getSimpleName();
 
     private ImageAdapter mImageAdapter;
     private GridView mGridView;
     private static final String[] MOVIE_COLUMNS = {
             MovieDataContract.MovieEntry.TABLE_NAME,
-            MovieDataContract.MovieEntry.KEY_COL ,
+            MovieDataContract.MovieEntry.KEY_COL,
             MovieDataContract.MovieEntry.TITLE_COL,
             MovieDataContract.MovieEntry.POSTER_COL,
             MovieDataContract.MovieEntry.DESC_COL,
             MovieDataContract.MovieEntry.RELEASE_DATE_COL,
             MovieDataContract.MovieEntry.RATING_COL,
+    };
+
+    public interface Callback {
+        public void changeDetailFragement(Long id);
     }
 
     @Override
@@ -71,9 +76,7 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
         mGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Intent intent = new Intent(getActivity(), DetailActivity.class);
-                intent.putExtra(Intent.EXTRA_TEXT, id);
-                startActivity(intent);
+                ((Callback) getActivity()).changeDetailFragement(id);
             }
         });
         return rootView;
@@ -86,21 +89,32 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
+        MainActivity activity = (MainActivity) getActivity();
 
-        if (id == R.id.sort_by_rating) {
-            MainActivity activity = (MainActivity) getActivity();
-            activity.setSortByOption(Consts.SORT_BY_RATING);
-        }
-
-        if (id == R.id.sort_by_popularity) {
-            MainActivity activity = (MainActivity) getActivity();
-            activity.setSortByOption(Consts.SORT_BY_POPULARITY);
-        }
-        if (item.getItemId() == R.id.action_update_main) {
-            Log.d(LOGTAG, "update main activity");
+        switch (id) {
+            case R.id.sort_by_favorite:
+                activity.setSortByOption(Consts.SORT_BY_FAVORITE);
+                break;
+            case R.id.sort_by_popularity:
+                activity.setSortByOption(Consts.SORT_BY_POPULARITY);
+                break;
+            case R.id.sort_by_rating:
+                activity.setSortByOption(Consts.SORT_BY_RATING);
+                break;
+            case R.id.action_update_main:
+                Log.d(LOGTAG, "Update main activity");
+                break;
+            default:
+                Log.d(LOGTAG, "Selected element id invalid");
         }
         updateMovieData();
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        getLoaderManager().initLoader(0, null, this);
+        super.onActivityCreated(savedInstanceState);
     }
 
     @Override
@@ -122,18 +136,22 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
                 movieData.execute(Consts.POPULAR_PATH);
             } else if (sortByOption.equals(Consts.SORT_BY_RATING)) {
                 movieData.execute(Consts.RATING_PATH);
+            } else if (sortByOption.equals(Consts.SORT_BY_FAVORITE)) {
+                getLoaderManager().restartLoader(0, null, this);
             }
         } else {
-            Toast.makeText(getActivity(), "No Internet", Toast.LENGTH_SHORT).show();
+            getLoaderManager().restartLoader(0, null, this);
+            Toast.makeText(getActivity(), "No Internet, Only favorite movies can be shown", Toast.LENGTH_SHORT).show();
         }
     }
 
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     @Override
-    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+    public android.support.v4.content.Loader<Cursor> onCreateLoader(int id, Bundle args) {
         Uri allMovieUri = MovieDataContract.MovieEntry.CONTENT_URI;
         return new CursorLoader(getActivity(),
                 allMovieUri,
-                MOVIE_COLUMNS,
+                null,
                 null,
                 null,
                 null
@@ -141,13 +159,20 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
     }
 
     @Override
-    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+    public void onLoaderReset(android.support.v4.content.Loader<Cursor> loader) {
 
     }
 
     @Override
-    public void onLoaderReset(Loader<Cursor> loader) {
-
+    public void onLoadFinished(android.support.v4.content.Loader<Cursor> loader, Cursor data) {
+        ArrayList<Long> movieIdsArrayList = new ArrayList<>();
+        if (data.moveToFirst()) {
+            do {
+                int idCol = data.getColumnIndex(MovieDataContract.MovieEntry.KEY_COL);
+                movieIdsArrayList.add(data.getLong(idCol));
+            } while (data.moveToNext());
+        }
+        mImageAdapter.setMovieDataWithUrl(movieIdsArrayList, new ArrayList<String>());
     }
 
     public class FetchMovieData extends AsyncTask<String, Void, LinkedHashMap<Long, String>> {
@@ -178,7 +203,6 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
             }
 
             return movieHashMap;
-
         }
 
         // Use LinkedHashMap to maintain the sorting order of the fetched data
@@ -247,12 +271,13 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
 
         protected void onPostExecute(LinkedHashMap<Long, String> movieData) {
             // Extract movie ids and its poster path into 2 arrays as sorted
-            Long[] movieIds = movieData.keySet().toArray(new Long[movieData.size()]);
-            String[] posterPaths = new String[movieData.size()];
-            for (int i = 0; i < posterPaths.length; i++) {
-                posterPaths[i] = movieData.get(movieIds[i]);
+            ArrayList<Long> movieIds = new ArrayList<>();
+            movieIds.addAll(movieData.keySet());
+            ArrayList<String> posterPaths = new ArrayList<>();
+            for (int i = 0; i < movieIds.size(); i++) {
+                posterPaths.add(movieData.get(movieIds.get(i)));
             }
-            mImageAdapter.setMovieData(movieIds, posterPaths);
+            mImageAdapter.setMovieDataWithUrl(movieIds, posterPaths);
         }
     }
 }
