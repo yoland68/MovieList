@@ -1,0 +1,7 @@
+gradle.properties
+*.swp
+*.swo
+.gradle
+.idea
+app
+build
