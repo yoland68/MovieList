@@ -6,6 +6,7 @@
 
     <string name="popularity_sort_entry">Sort by Popularity</string>
     <string name="rating_sort_entry">Sort by Rating</string>
+    <string name="favorite_sort_entry">Sort by Favorite</string>
     <string name="videos">Trailers</string>
     <string name="reviews">Reviews</string>
 </resources>

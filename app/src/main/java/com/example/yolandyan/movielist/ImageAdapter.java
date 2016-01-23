@@ -18,6 +18,8 @@ import com.squareup.picasso.Picasso;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 
 
 /**
@@ -25,23 +27,23 @@ import java.io.ByteArrayOutputStream;
  */
 public class ImageAdapter extends BaseAdapter {
     private Context mContext;
-    private String[] mPosterPaths = {};
-    private Long[] mMovieIds = {};
+    private ArrayList<String> mPosterPaths = new ArrayList<>();
+    private ArrayList<Long> mMovieIds = new ArrayList<>();
 
     public ImageAdapter(Context c) {
         mContext = c;
     }
 
     public int getCount() {
-        return mPosterPaths.length;
+        return mMovieIds.size();
     }
 
     public String getItem(int position) {
-        return mPosterPaths[position];
+        return mPosterPaths.get(position);
     }
 
     public long getItemId(int position) {
-        return mMovieIds[position];
+        return mMovieIds.get(position);
     }
 
     public View getView(final int position, View convertView, ViewGroup parent) {
@@ -104,10 +106,12 @@ public class ImageAdapter extends BaseAdapter {
                     Long x = getItemId(position);
                     String[] xString = new String[]{x.toString()};
                     int rows = mContext.getContentResolver().delete(
-                            MovieDataContract.MovieEntry.buildUriWithId(getItemId(position)),null, null
+                            MovieDataContract.MovieEntry.buildUriWithId(getItemId(position)), null, null
                     );
                     ImageView clickImageView = (ImageView) v.findViewById(R.id.main_star);
                     clickImageView.setImageDrawable(ContextCompat.getDrawable(mContext, R.drawable.star_empty));
+                    mMovieIds.remove(position);
+                    notifyDataSetChanged();
                 }
                 clickCursor.close();
             }
@@ -115,17 +119,17 @@ public class ImageAdapter extends BaseAdapter {
         return convertView;
     }
 
-    public void setMovieData(Long[] movieIds, String[] posterPaths) {
+    public void setMovieDataWithUrl(ArrayList<Long> movieIds, ArrayList<String> posterPaths) {
         mMovieIds = movieIds;
         mPosterPaths = posterPaths;
         notifyDataSetChanged();
     }
 
-    public String[] getPosterPaths() {
+    public ArrayList<String> getPosterPaths() {
         return mPosterPaths;
     }
 
-    public Long[] getMovieIds() {
+    public ArrayList<Long> getMovieIds() {
         return mMovieIds;
     }
 }
