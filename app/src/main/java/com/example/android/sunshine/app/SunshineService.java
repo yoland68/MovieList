@@ -1,8 +1,10 @@
 package com.example.android.sunshine.app;
 
 import android.app.IntentService;
+import android.content.BroadcastReceiver;
 import android.content.ContentUris;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -28,7 +30,7 @@ import java.util.Vector;
  */
 public class SunshineService extends IntentService {
     public static final String LOCATION_TAG = "location";
-    public static final String LOG_TAG = SunshineService.class.getSimpleName();
+    public static final String LOG_TAG = "#YOLAND in " + SunshineService.class.getSimpleName();
     public SunshineService() {
         super("Sunshine");
     }
@@ -223,6 +225,7 @@ public class SunshineService extends IntentService {
                 ContentValues[] cvArray = new ContentValues[cVVector.size()];
                 cVVector.toArray(cvArray);
                 inserted = getContentResolver().bulkInsert(WeatherContract.WeatherEntry.CONTENT_URI, cvArray);
+
             }
 
             Log.d(LOG_TAG, "FetchWeatherTask Complete. " + inserted + " Inserted");
@@ -325,6 +328,14 @@ public class SunshineService extends IntentService {
             }
         }
         return;
+    }
 
+    static public class AlarmReceiver extends BroadcastReceiver {
+
+        private static String
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(LOG_TAG, "Alarm");
+        }
     }
 }

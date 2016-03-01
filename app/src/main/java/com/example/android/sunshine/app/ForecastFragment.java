@@ -15,14 +15,19 @@
  */
 package com.example.android.sunshine.app;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -38,6 +43,7 @@ import com.example.android.sunshine.app.data.WeatherContract;
  * Encapsulates fetching the forecast and displaying it as a {@link ListView} layout.
  */
 public class ForecastFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
+    private static String LOG_TAG = String.format("#YOLAND in %s", ForecastFragment.class.getSimpleName());
     private ForecastAdapter mForecastAdapter;
 
     private ListView mListView;
@@ -184,6 +190,12 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
         Intent serviceIntent = new Intent(getActivity(), SunshineService.class);
         serviceIntent.putExtra(SunshineService.LOCATION_TAG, location);
         getActivity().startService(serviceIntent);
+
+        AlarmManager mngr = (AlarmManager)getActivity().getSystemService(Context.ALARM_SERVICE);
+        Intent broadcastIntent = new Intent(getActivity(), SunshineService.AlarmReceiver.class);
+        PendingIntent pi = PendingIntent.getBroadcast(getActivity(), 0, broadcastIntent, 0);
+        mngr.setRepeating(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime(), 5000, pi);
+
     }
 
     @Override
@@ -206,12 +218,14 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
         // dates after or including today.
 
         // Sort order:  Ascending, by date.
+        Log.d(LOG_TAG, "onCreateLoader 1");
         String sortOrder = WeatherContract.WeatherEntry.COLUMN_DATE + " ASC";
 
         String locationSetting = Utility.getPreferredLocation(getActivity());
         Uri weatherForLocationUri = WeatherContract.WeatherEntry.buildWeatherLocationWithStartDate(
                 locationSetting, System.currentTimeMillis());
 
+        Log.d(LOG_TAG, "onCreateLoader 2");
         return new CursorLoader(getActivity(),
                 weatherForLocationUri,
                 FORECAST_COLUMNS,
@@ -222,17 +236,21 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        Log.d(LOG_TAG, "onLoadFinished 1");
         mForecastAdapter.swapCursor(data);
         if (mPosition != ListView.INVALID_POSITION) {
             // If we don't need to restart the loader, and there's a desired position to restore
             // to, do so now.
             mListView.smoothScrollToPosition(mPosition);
         }
+        Log.d(LOG_TAG, "onLoadFinished 2");
     }
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
+        Log.d(LOG_TAG, "onLoadReset 1");
         mForecastAdapter.swapCursor(null);
+        Log.d(LOG_TAG, "onLoadReset 2");
     }
 
     public void setUseTodayLayout(boolean useTodayLayout) {
